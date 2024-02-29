@@ -25,7 +25,7 @@ class LoginFragment : BaseFragment() {
         private const val TAG = "LoginFragment"
     }
 
-    override fun setViewBinding(): ViewBinding? {
+    override fun setViewBinding(): ViewBinding {
         viewBinding = FragmentLoginBinding.inflate(layoutInflater)
         return viewBinding
     }

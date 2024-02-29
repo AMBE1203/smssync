@@ -40,7 +40,7 @@ abstract class BaseFragment : Fragment(), IView {
                 onSafeClick(it)
             }
             setOnClickListener(safeClickListener)
-        } catch (E: Exception) {
+        } catch (_: Exception) {
         }
     }
 

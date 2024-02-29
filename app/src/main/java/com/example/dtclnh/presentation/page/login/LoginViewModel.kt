@@ -21,7 +21,7 @@ class LoginViewModel @Inject constructor(private val loginUseCase: LoginUseCase)
 
     private val _loginLiveData: MutableLiveData<LoginViewState<BaseResponse<UserModel>>> =
         MutableLiveData(
-            LoginViewState<BaseResponse<UserModel>>(
+            LoginViewState(
                 isShowLoading = false,
                 isError = null,
                 isSuccess = null,

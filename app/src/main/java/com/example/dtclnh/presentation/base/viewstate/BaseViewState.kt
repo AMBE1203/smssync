@@ -13,15 +13,13 @@ open class BaseViewState<out T : Any>(
         other as BaseViewState<*>
         if (isLoading != other.isLoading) return false
         if (throwable != other.throwable) return false
-        if (result != other.result) return false
-
-        return true
+        return result == other.result
     }
 
     override fun hashCode(): Int {
         var result = isLoading.hashCode()
         result = 31 * result + (throwable?.hashCode() ?: 0)
-        result = 31 * result + (result.hashCode() ?: 0)
+        result = 31 * result + (result.hashCode())
         return result
     }
 }
