@@ -1,6 +1,11 @@
 package com.example.dtclnh.presentation.page.login
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.viewbinding.ViewBinding
 import com.example.dtclnh.core.Errors
@@ -9,6 +14,7 @@ import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.UserModel
 import com.example.dtclnh.presentation.base.ext.observe
 import com.example.dtclnh.presentation.base.view.BaseFragment
+import com.example.dtclnh.presentation.broadcast.SyncService
 import com.example.dtclnh.util.showToast
 import dagger.hilt.android.AndroidEntryPoint
 import retrofit2.HttpException
@@ -34,6 +40,18 @@ class LoginFragment : BaseFragment() {
     override fun initView() {
     }
 
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                loginViewModel.readAllSMS()
+            } else {
+                // todo navigate to setting
+            }
+        }
+
+
+
     override fun initData() {
         viewBinding.mBtnSignIn.setSafeOnClickListener {
             loginViewModel.login(
@@ -43,6 +61,17 @@ class LoginFragment : BaseFragment() {
         }
 
         observe(loginViewModel.loginLiveData, this::onNewState)
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_SMS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissionLauncher.launch(Manifest.permission.READ_SMS)
+        } else {
+
+            loginViewModel.readAllSMS()
+
+        }
+
+
 
     }
 
@@ -55,6 +84,7 @@ class LoginFragment : BaseFragment() {
                         401 -> "username or password failure."
                         else -> "network failure"
                     }
+
                 is Errors.NoInternetError -> "No Internet"
                 else -> "network failure"
             }.also { str ->
