@@ -3,7 +3,7 @@ package com.example.dtclnh.di
 import android.app.Application
 import androidx.room.Room.databaseBuilder
 import com.example.dtclnh.data.source.local.AppDatabase
-import com.example.dtclnh.data.source.local.dao.UserDao
+import com.example.dtclnh.data.source.local.dao.SmsDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,9 +23,8 @@ class DatabaseModule {
         ).allowMainThreadQueries().build()
     }
 
-
     @Provides
-    internal fun providePhotoDao(appDatabase: AppDatabase): UserDao {
-        return appDatabase.userDao()
+    internal fun provideSmsDao(appDatabase: AppDatabase): SmsDao {
+        return appDatabase.smsDao()
     }
 }

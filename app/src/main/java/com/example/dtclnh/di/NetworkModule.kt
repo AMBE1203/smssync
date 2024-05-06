@@ -1,16 +1,14 @@
 package com.example.dtclnh.di
 
-import android.app.Application
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import com.example.dtclnh.core.Constants.BASE_URL
-import com.example.dtclnh.data.repository.LoginRepositoryImpl
+import com.example.dtclnh.data.repository.SmsRepositoryImpl
 import com.example.dtclnh.data.source.local.AppDatabase
-import com.example.dtclnh.data.source.remote.ILoginApi
-import com.example.dtclnh.domain.reposiory.ILoginRepository
-import com.example.dtclnh.domain.usecase.LoginUseCase
+import com.example.dtclnh.domain.reposiory.ISmsRepository
+import com.example.dtclnh.domain.usecase.SaveSmsUseCase
 import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
@@ -127,23 +125,17 @@ class NetworkModule {
         return result
     }
 
-    @Singleton
-    @Provides
-    fun provideLoginApi(retrofit: Retrofit): ILoginApi {
-        return retrofit.create(ILoginApi::class.java)
-    }
 
 
     @Singleton
     @Provides
-    fun provideLoginRepository(
+    fun provideSmsRepository(
         appDatabase: AppDatabase,
-        iLoginApi: ILoginApi,
-    ): ILoginRepository {
-        return LoginRepositoryImpl(appDatabase, iLoginApi)
+    ): ISmsRepository {
+        return SmsRepositoryImpl(appDatabase)
     }
 
     @Provides
-    fun providerLoginUseCase(repository: ILoginRepository): LoginUseCase =
-        LoginUseCase(repository = repository)
+    fun providerSaveSmsUseCase(repository: ISmsRepository): SaveSmsUseCase =
+        SaveSmsUseCase(repository = repository)
 }

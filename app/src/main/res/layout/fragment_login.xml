@@ -9,8 +9,10 @@
     tools:layout_editor_absoluteY="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/csl_login"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clickable="true"
         android:focusable="true"
         android:focusableInTouchMode="true"
         android:gravity="center_horizontal"
@@ -42,10 +44,11 @@
             app:layout_constraintTop_toBottomOf="@id/tv_1">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/password_edit_text"
+                android:id="@+id/edit_client_id"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textVisiblePassword" />
+                android:inputType="textVisiblePassword"
+                android:textColor="@color/black" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -63,7 +66,8 @@
                 android:id="@+id/edit_api_key"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textVisiblePassword" />
+                android:inputType="textVisiblePassword"
+                android:textColor="@color/black" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -81,7 +85,9 @@
                 android:id="@+id/edit_api_url"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textVisiblePassword" />
+                android:inputType="textVisiblePassword"
+
+                android:textColor="@color/black" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <ImageView
