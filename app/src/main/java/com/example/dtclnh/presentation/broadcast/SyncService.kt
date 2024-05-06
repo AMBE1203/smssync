@@ -17,6 +17,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.dtclnh.MainActivity
 import com.example.dtclnh.R
+import com.example.dtclnh.presentation.page.login.LoginFragment
 import kotlinx.coroutines.*
 import okhttp3.*
 import java.io.IOException
@@ -163,7 +164,7 @@ class SyncService : Service() {
     private fun buildNotification(): Notification {
         val channelId = "SyncServiceChannel"
         createNotificationChannel(channelId)
-        val notificationIntent = Intent(this, MainActivity::class.java)
+        val notificationIntent = Intent(this, LoginFragment::class.java)
         val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
             PendingIntent.FLAG_IMMUTABLE)
 

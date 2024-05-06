@@ -3,8 +3,9 @@ package com.example.dtclnh.presentation.page.login
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.view.View
+import android.os.Build
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.viewbinding.ViewBinding
@@ -18,6 +19,7 @@ import com.example.dtclnh.presentation.broadcast.SyncService
 import com.example.dtclnh.util.showToast
 import dagger.hilt.android.AndroidEntryPoint
 import retrofit2.HttpException
+
 
 @AndroidEntryPoint
 class LoginFragment : BaseFragment() {
@@ -36,42 +38,50 @@ class LoginFragment : BaseFragment() {
         return viewBinding
     }
 
-
-    override fun initView() {
-    }
-
-
-    private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-                loginViewModel.readAllSMS()
+    private val requestForegroundPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissionsStatusMap ->
+            if (!permissionsStatusMap.containsValue(false)) {
+                val serviceIntent = Intent(requireContext(), SyncService::class.java)
+                requireContext().startService(serviceIntent)
             } else {
                 // todo navigate to setting
             }
         }
 
+    @RequiresApi(Build.VERSION_CODES.P)
+    override fun initView() {
+        viewBinding.switchOnOff.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                if (ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.FOREGROUND_SERVICE
+                    ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.READ_SMS
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    val serviceIntent = Intent(requireContext(), SyncService::class.java)
+                    requireContext().startService(serviceIntent)
+                } else {
+                    requestForegroundPermissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.READ_SMS,
+                            Manifest.permission.FOREGROUND_SERVICE
+                        )
+                    )
+                }
+            } else {
+                val serviceIntent = Intent(requireContext(), SyncService::class.java)
+                requireContext().stopService(serviceIntent)
+            }
+
+        }
+    }
 
 
     override fun initData() {
-        viewBinding.mBtnSignIn.setSafeOnClickListener {
-            loginViewModel.login(
-                viewBinding.tvUsername.text.toString(),
-                viewBinding.tvPassword.text.toString()
-            )
-        }
 
         observe(loginViewModel.loginLiveData, this::onNewState)
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_SMS)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissionLauncher.launch(Manifest.permission.READ_SMS)
-        } else {
-
-            loginViewModel.readAllSMS()
-
-        }
-
-
 
     }
 
@@ -92,21 +102,6 @@ class LoginFragment : BaseFragment() {
             }
         }
 
-
-        viewBinding.mProgressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
-        viewBinding.txtErrorEmail.visibility =
-            if (state.showErrorValidEmail) View.VISIBLE else View.GONE
-
-        if (state.result != null) {
-
-            if (state.result.code != 1) {
-                showToast { state.result.message }
-            } else {
-                showToast { state.result.data?.userName.toString() }
-
-            }
-
-        }
 
     }
 }
