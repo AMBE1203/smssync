@@ -7,7 +7,11 @@ import android.os.Build
 import com.example.dtclnh.core.Constants.BASE_URL
 import com.example.dtclnh.data.repository.SmsRepositoryImpl
 import com.example.dtclnh.data.source.local.AppDatabase
+import com.example.dtclnh.data.source.remote.IBackUpApi
+import com.example.dtclnh.domain.model.SyncEvent
 import com.example.dtclnh.domain.reposiory.ISmsRepository
+import com.example.dtclnh.domain.usecase.BackUpUseCase
+import com.example.dtclnh.domain.usecase.FetchAllSmsUseCase
 import com.example.dtclnh.domain.usecase.SaveSmsUseCase
 import com.google.gson.Gson
 import dagger.Module
@@ -15,6 +19,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -33,7 +39,7 @@ class NetworkModule {
     fun providesRetrofit(
         gsonConverterFactory: GsonConverterFactory,
         rxJava2CallAdapterFactory: RxJava2CallAdapterFactory,
-        okHttpClient: OkHttpClient
+        okHttpClient: OkHttpClient,
     ): Retrofit {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
@@ -46,7 +52,10 @@ class NetworkModule {
     @Provides
     @Singleton
     fun providesOkHttpClient(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        endpointInterceptor: EndpointInterceptor,
+        headerInterceptor: HeaderInterceptor
+
     ): OkHttpClient {
         val cacheSize = (5 * 1024 * 1024).toLong()
         val mCache = Cache(context.cacheDir, cacheSize)
@@ -58,18 +67,9 @@ class NetworkModule {
             .writeTimeout(60, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .addNetworkInterceptor(interceptor)
-            .addInterceptor { chain ->
-                var request = chain.request()
+            .addInterceptor(endpointInterceptor)
+            .addInterceptor(headerInterceptor)
 
-                request =
-                    if (true) request.newBuilder()
-                        .header("Cache-Control", "public, max-age=" + 5).build()
-                    else request.newBuilder().header(
-                        "Cache-Control",
-                        "public, only-if-cached, max-stale=" + 60 * 60 * 24 * 7
-                    ).build()
-                chain.proceed(request)
-            }
         return client.build()
     }
 
@@ -126,16 +126,46 @@ class NetworkModule {
     }
 
 
-
     @Singleton
     @Provides
     fun provideSmsRepository(
         appDatabase: AppDatabase,
+        iBackUpApi: IBackUpApi
     ): ISmsRepository {
-        return SmsRepositoryImpl(appDatabase)
+        return SmsRepositoryImpl(appDatabase, iBackUpApi)
     }
+
+    @Singleton
+    @Provides
+    fun provideBackUpApi(retrofit: Retrofit): IBackUpApi {
+        return retrofit.create(IBackUpApi::class.java)
+    }
+
 
     @Provides
     fun providerSaveSmsUseCase(repository: ISmsRepository): SaveSmsUseCase =
         SaveSmsUseCase(repository = repository)
+
+    @Provides
+    fun providerFetchAllSmsUseCase(repository: ISmsRepository): FetchAllSmsUseCase =
+        FetchAllSmsUseCase(repository = repository)
+
+    @Provides
+    fun providerBackUpUseCase(repository: ISmsRepository): BackUpUseCase =
+        BackUpUseCase(repository = repository)
+
+    @Provides
+    @Singleton
+    fun provideEndpointInterceptor(): EndpointInterceptor {
+        return EndpointInterceptor()
+    }
+
+    @Provides
+    @Singleton
+    fun provideHeaderInterceptor(): HeaderInterceptor {
+        return HeaderInterceptor()
+    }
+
+
+
 }

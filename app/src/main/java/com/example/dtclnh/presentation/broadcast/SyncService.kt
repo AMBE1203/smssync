@@ -15,12 +15,18 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.work.*
 import com.example.dtclnh.MainActivity
 import com.example.dtclnh.R
+import com.example.dtclnh.core.Constants.WORK_MANAGER_ID
+import com.example.dtclnh.core.Constants.WORK_MANAGER_TAG
 import com.example.dtclnh.presentation.page.login.LoginFragment
+import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.*
 import okhttp3.*
 import java.io.IOException
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
 
 class SyncService : Service() {
 
@@ -92,9 +98,28 @@ class SyncService : Service() {
         val smsFilter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
         registerReceiver(smsReceiver, smsFilter)
 
-        // Bắt đầu Service trong foreground
         startForeground(NOTIFICATION_ID, buildNotification())
+
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val syncRequest = PeriodicWorkRequestBuilder<DataSyncWorker>(
+            repeatInterval = 15L,
+            repeatIntervalTimeUnit = TimeUnit.MINUTES
+        )
+            .setConstraints(constraints)
+            .addTag(WORK_MANAGER_TAG)
+            .build()
+
+
+        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+            WORK_MANAGER_ID,
+            ExistingPeriodicWorkPolicy.KEEP,
+            syncRequest
+        )
     }
+
 
     override fun onDestroy() {
         super.onDestroy()
@@ -140,7 +165,6 @@ class SyncService : Service() {
 
     private fun sendMessageToServer(message: String) {
 
-        Log.e("AMBE1203 ToServer", "$message")
 //        // Triển khai phương thức này để gửi tin nhắn lên server
 //        val client = OkHttpClient()
 //        val requestBody = FormBody.Builder()
@@ -165,8 +189,10 @@ class SyncService : Service() {
         val channelId = "SyncServiceChannel"
         createNotificationChannel(channelId)
         val notificationIntent = Intent(this, LoginFragment::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
 
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("Sync Service")

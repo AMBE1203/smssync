@@ -1,5 +1,6 @@
 package com.example.dtclnh.core
 
+import android.util.Log
 import androidx.constraintlayout.motion.utils.ViewState
 import com.example.dtclnh.presentation.base.viewstate.BaseViewState
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +20,8 @@ suspend fun <T : Any> performSafeNetworkApiCall(
 ): Flow<IOResults<T>> {
     var delayDuration = 1000L
     val delayFactor = 2
+
+    Log.e("AMBE1203", " vao day")
     return flow {
         val response = networkApiCall()
         if (response.isSuccessful) {

@@ -9,5 +9,7 @@ object Constants {
     const val API_URL_KEY = "API_URL_KEY"
 
     const val CLIENT_ID = "SMSS_CLIENT"
+    const val WORK_MANAGER_ID = "WORK_MANAGER_ID"
+    const val WORK_MANAGER_TAG = "WORK_MANAGER_TAG"
 
 }

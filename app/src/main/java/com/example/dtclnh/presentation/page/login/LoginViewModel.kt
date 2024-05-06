@@ -8,18 +8,27 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import com.example.dtclnh.core.Constants
 import com.example.dtclnh.core.Constants.API_KEY_KEY
 import com.example.dtclnh.core.Constants.API_URL_KEY
 import com.example.dtclnh.core.Constants.CLIENT_ID_KEY
+import com.example.dtclnh.di.EndpointInterceptor
+import com.example.dtclnh.di.HeaderInterceptor
 import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.SmsModel
+import com.example.dtclnh.domain.model.SyncEvent
+import com.example.dtclnh.domain.model.SyncStatus
+import com.example.dtclnh.domain.usecase.BackUpUseCase
 import com.example.dtclnh.domain.usecase.FetchAllSmsUseCase
 import com.example.dtclnh.domain.usecase.SaveSmsUseCase
 import com.example.dtclnh.presentation.base.ext.postNext
 import com.example.dtclnh.presentation.base.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,8 +37,16 @@ class LoginViewModel @Inject constructor(
     private val fetchAllSmsUseCase: FetchAllSmsUseCase,
     private val saveSmsUseCase: SaveSmsUseCase,
     private val application: Application,
-    private val sharedPreferences: SharedPreferences
-) : BaseViewModel() {
+    private val sharedPreferences: SharedPreferences,
+    private val backUpUseCase: BackUpUseCase,
+    private val endpointInterceptor: EndpointInterceptor,
+    private val headerInterceptor: HeaderInterceptor,
+
+
+    ) : BaseViewModel() {
+    private val _syncStatus = MutableLiveData<SyncStatus>()
+
+
     private val context: Context = application.applicationContext
     private val state: LoginViewState<MutableList<SmsModel>> = LoginViewState()
 
@@ -37,6 +54,10 @@ class LoginViewModel @Inject constructor(
         MutableLiveData(state)
 
     val stateLiveData: LiveData<LoginViewState<MutableList<SmsModel>>> = _stateLiveData
+
+    init {
+
+    }
 
     fun initData() {
         viewModelScope.launch {
@@ -46,7 +67,37 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    init {
+//        viewModelScope.launch {
+//            syncEventFlow.collect { event ->
+//                when (event) {
+//                    SyncEvent.SyncStarted -> _syncStatus.value = SyncStatus.SYNCING
+//                    is SyncEvent.SyncSuccess -> _syncStatus.value = SyncStatus.SUCCESS
+//                    is SyncEvent.SyncError -> _syncStatus.value = SyncStatus.ERROR
+//                }
+//            }
+//        }
+    }
+
+
+
     fun readAllSMS() {
+
+//        viewModelScope.launch {
+//            val newEndpoint = "http://125.212.238.157:8460/api/v1/sms/new/batch"
+//            endpointInterceptor.setNewEndpoint(newEndpoint)
+//            val headers = mapOf(
+//                "Authorization" to "Basic c21zc3luYzpzbXNzeW5jQDIwMjQ=",
+//                "Content-Type" to "application/json"
+//            )
+//            headerInterceptor.setHeaders(headers)
+//            backUpUseCase.execute(mutableListOf()).collect {
+//                Log.e("AMBE1203", it.toString())
+//            }
+//
+//        }
+
+
         val contentResolver: ContentResolver = context.contentResolver
         val smsURI: Uri = Uri.parse("content://sms/inbox")
         val cursor = contentResolver.query(smsURI, null, null, null, null)

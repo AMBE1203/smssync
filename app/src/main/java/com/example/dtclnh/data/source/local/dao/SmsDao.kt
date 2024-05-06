@@ -20,7 +20,7 @@ interface SmsDao {
 
 
     @Query("SELECT * FROM SMS WHERE backupStatus = :backupStatus")
-    fun loadAll(backupStatus: BackupStatus): Flow<MutableList<SmsModel>>
+    fun loadSmsByBackupStatus(backupStatus: BackupStatus): Flow<MutableList<SmsModel>>
 
     @Delete
     suspend fun delete(smsModel: SmsModel)

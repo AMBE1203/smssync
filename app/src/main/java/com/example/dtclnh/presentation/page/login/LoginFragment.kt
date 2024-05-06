@@ -1,8 +1,13 @@
 package com.example.dtclnh.presentation.page.login
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ActivityManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -17,18 +22,27 @@ import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.LiveData
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.viewbinding.ViewBinding
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.example.dtclnh.core.Constants
+import com.example.dtclnh.core.Constants.WORK_MANAGER_ID
+import com.example.dtclnh.core.Constants.WORK_MANAGER_TAG
 import com.example.dtclnh.core.Errors
 import com.example.dtclnh.databinding.FragmentLoginBinding
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsModel
+import com.example.dtclnh.domain.model.SyncStatus
 import com.example.dtclnh.presentation.base.ext.observe
 import com.example.dtclnh.presentation.base.view.BaseFragment
 import com.example.dtclnh.presentation.broadcast.SyncService
 import com.example.dtclnh.util.showToast
+import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import retrofit2.HttpException
+import java.util.concurrent.ExecutionException
 
 
 @AndroidEntryPoint
@@ -71,10 +85,23 @@ class LoginFragment : BaseFragment() {
     private fun navigateToSetting() {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
         val uri = Uri.fromParts("package", requireActivity().packageName, null)
-        intent.setData(uri)
+        intent.data = uri
         startActivity(intent)
     }
 
+    private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val services = activityManager.getRunningServices(Int.MAX_VALUE)
+        for (service in services) {
+            if (serviceClass.name == service.service.className) {
+                return true
+            }
+        }
+        return false
+    }
+
+
+    @SuppressLint("SuspiciousIndentation")
     @RequiresApi(Build.VERSION_CODES.P)
     override fun initView() {
 
@@ -119,12 +146,44 @@ class LoginFragment : BaseFragment() {
                     )
                 }
             } else {
-                val serviceIntent = Intent(requireContext(), SyncService::class.java)
-                requireContext().stopService(serviceIntent)
+                try {
+                    WorkManager.getInstance(requireActivity().applicationContext)
+                        .cancelUniqueWork(WORK_MANAGER_ID)
+                    WorkManager.getInstance(requireActivity().applicationContext)
+                        .cancelAllWork()
+                    val serviceIntent = Intent(requireContext(), SyncService::class.java)
+                    requireContext().stopService(serviceIntent)
+                } catch (_: Exception) {
+
+                }
+
             }
 
         }
 
+
+        viewBinding.switchOnOff.isChecked =
+            isServiceRunning(requireContext(), SyncService::class.java)
+
+        WorkManager.getInstance(requireActivity().applicationContext)
+            .getWorkInfosByTagLiveData(Constants.WORK_MANAGER_TAG).observe(this) {
+                if (it.isNotEmpty()) {
+                    val x = it[0]
+                    when (x.state) {
+                        WorkInfo.State.SUCCEEDED -> {
+                            viewBinding.tvStatus.setText("aaaa")
+
+                        }
+                        WorkInfo.State.FAILED -> {
+                            viewBinding.tvStatus.setText("bbbb")
+
+                        }
+                        else -> {}
+                    }
+                }
+
+
+            }
 
 
 
@@ -144,6 +203,8 @@ class LoginFragment : BaseFragment() {
 
         }
 
+
+
         viewBinding.editApiKey.addTextChangedListener {
             loginViewModel.setApiKey(it.toString().trim())
         }
@@ -154,7 +215,55 @@ class LoginFragment : BaseFragment() {
         viewBinding.editClientId.addTextChangedListener {
             loginViewModel.setClientId(it.toString().trim())
         }
+
+        WorkManager.getInstance(requireActivity().applicationContext)
+            .getWorkInfosByTagLiveData(WORK_MANAGER_TAG)
+            .observe(this) { workInfos ->
+                if (workInfos != null) {
+                    workInfos.forEach { workInfo ->
+                        val successData = workInfo.outputData.getBoolean("work_success_flag", false)
+                        if (successData) {
+
+                            Log.e("AMBE1203 ", " vao day 11")
+                            // Xử lý khi công việc thành công
+                            // ...
+                        }
+                    }
+
+
+                }
+            }
+
+        val filter = IntentFilter("action_work_success")
+        LocalBroadcastManager.getInstance(requireContext().applicationContext)
+            .registerReceiver(receiver, filter)
+
+        val filterRunning = IntentFilter("action_work_running")
+        LocalBroadcastManager.getInstance(requireContext().applicationContext)
+            .registerReceiver(receiver, filterRunning)
+
+
     }
+
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "action_work_success") {
+                // Xử lý khi công việc thành công
+                // ...
+                viewBinding.tvStatus.setText("action_work_success")
+
+            } else if (intent?.action == "action_work_running") {
+                viewBinding.tvStatus.setText("action_work_running")
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver)
+    }
+
 
     private fun hideSoftKeyboard(activity: Activity) {
         val inputMethodManager = activity.getSystemService(
@@ -193,12 +302,18 @@ class LoginFragment : BaseFragment() {
         observe(loginViewModel.stateLiveData, this::onNewStateSms)
     }
 
+    private fun onNewSyncStatus(status: SyncStatus) {
+        when (status) {
+            SyncStatus.SYNCING -> viewBinding.tvStatus.setText("a")
+            SyncStatus.SUCCESS -> viewBinding.tvStatus.setText("b")
+            SyncStatus.ERROR -> viewBinding.tvStatus.setText("c")
+        }
+
+    }
+
     private fun onNewStateSms(state: LoginViewState<MutableList<SmsModel>>) {
         if (state.isSuccess?.isNotEmpty() == true) {
             viewBinding.tvCount.text = "${state.isSuccess.size}"
-            state.isSuccess?.forEach {
-                Log.e("AMBE1203", it.content)
-            }
         } else {
             viewBinding.tvCount.text = "0"
         }
