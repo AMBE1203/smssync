@@ -30,10 +30,9 @@ interface SmsDao {
     @Delete
     suspend fun delete(smsModel: SmsModel)
 
-    @Query("DELETE FROM SMS WHERE receivedAt NOT IN (:receivedAts) AND backupStatus = :backupStatus")
+    @Query("DELETE FROM SMS WHERE receivedAt NOT IN (:receivedAts)")
     suspend fun deleteNonExistingEntities(
         receivedAts: List<String>,
-        backupStatus: BackupStatus
     )
 
     @Query("SELECT * FROM SMS WHERE receivedAt IN (:receivedAts)")

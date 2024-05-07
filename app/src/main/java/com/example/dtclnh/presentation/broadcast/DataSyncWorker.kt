@@ -22,10 +22,7 @@ import com.example.dtclnh.core.IOResults
 import com.example.dtclnh.core.getViewStateFlowForNetworkCall
 import com.example.dtclnh.di.EndpointInterceptor
 import com.example.dtclnh.di.HeaderInterceptor
-import com.example.dtclnh.domain.model.SmsDataWrapper
-import com.example.dtclnh.domain.model.SmsParam
-import com.example.dtclnh.domain.model.SyncEvent
-import com.example.dtclnh.domain.model.SyncStatus
+import com.example.dtclnh.domain.model.*
 import com.example.dtclnh.domain.usecase.BackUpUseCase
 import com.example.dtclnh.domain.usecase.FetchAllSmsForBackUpUseCase
 import com.example.dtclnh.domain.usecase.FindAndUpdateStatusUseCase
@@ -83,7 +80,6 @@ class DataSyncWorker @AssistedInject constructor(
                     withContext(Dispatchers.Default) {
                         val jobs = mutableListOf<Job>()
                         smsInbox.chunked(CHUNK_SIZE) { chunk ->
-                            Log.e("AMBE1203", "size: ${chunk.size}")
                             val job = launch {
                                 try {
 
@@ -96,11 +92,11 @@ class DataSyncWorker @AssistedInject constructor(
                                             receivedAt = it.receivedAt.toLong().toDateTimeString()
                                         )
                                     }.toList()
-
                                     val smsDataWrapper = SmsDataWrapper(data = params)
                                     getViewStateFlowForNetworkCall {
                                         backUpUseCase.execute(smsDataWrapper)
                                     }.collect { r ->
+
                                         if (r.isLoading) {
                                             val intentRunning = Intent(ACTION_WORK_RUNNING)
                                             LocalBroadcastManager.getInstance(applicationContext)
@@ -117,17 +113,36 @@ class DataSyncWorker @AssistedInject constructor(
                                                 .sendBroadcast(intent)
                                         } else if (r.result != null) {
                                             Log.e("AMBE1203", "OnSuccess ${r.result}")
-                                            findAndUpdateStatusUseCase.execute(chunk.map { it.receivedAt }
-                                                .toList())
+                                            val status =
+                                                (r.result as BaseResponse<List<SmsModel>>).status
+                                            if (status == 200) {
+                                                findAndUpdateStatusUseCase.execute(chunk.map { it.receivedAt }
+                                                    .toList())
+
+                                                val intent = Intent(ACTION_WORK_SUCCESS)
+                                                LocalBroadcastManager.getInstance(applicationContext)
+                                                    .sendBroadcast(intent)
+
+                                                fetchAllSmsForBackUpUseCase.execute().collect {
+                                                    it.forEach { g ->
+                                                        Log.e("AMBE1203", "${g.receivedAt} ${g.backupStatus} ${g.sender}")
+                                                    }
+                                                }
+                                            } else {
+                                                val intent = Intent(ACTION_WORK_FAIL)
+                                                intent.putExtra(
+                                                    "error",
+                                                    r.result.message
+                                                )
+                                                LocalBroadcastManager.getInstance(applicationContext)
+                                                    .sendBroadcast(intent)
+                                            }
 
 
-                                            val intent = Intent(ACTION_WORK_SUCCESS)
-                                            LocalBroadcastManager.getInstance(applicationContext)
-                                                .sendBroadcast(intent)
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    Log.e("AMBE1203", "throwable ${e.localizedMessage}")
+                                    Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
                                     val intent = Intent(ACTION_WORK_FAIL)
                                     intent.putExtra("error", e.localizedMessage)
                                     LocalBroadcastManager.getInstance(applicationContext)

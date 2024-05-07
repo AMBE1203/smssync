@@ -66,7 +66,7 @@
                 android:id="@+id/edit_api_key"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textVisiblePassword"
+                android:inputType="textMultiLine"
                 android:textColor="@color/black" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -83,9 +83,10 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/edit_api_url"
+                android:maxLines="2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textVisiblePassword"
+                android:inputType="textMultiLine"
 
                 android:textColor="@color/black" />
         </com.google.android.material.textfield.TextInputLayout>

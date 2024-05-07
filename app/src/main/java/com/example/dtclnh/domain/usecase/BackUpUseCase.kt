@@ -12,8 +12,8 @@ import javax.inject.Singleton
 
 @Singleton
 class BackUpUseCase @Inject constructor(private val repository: ISmsRepository) :
-    IUseCase<SmsDataWrapper, BaseResponse<SmsModel>> {
-    override suspend fun execute(input: SmsDataWrapper): Flow<IOResults<BaseResponse<SmsModel>>> =
+    IUseCase<SmsDataWrapper, BaseResponse<List<SmsModel>>> {
+    override suspend fun execute(input: SmsDataWrapper): Flow<IOResults<BaseResponse<List<SmsModel>>>> =
         repository.backup(sms = input)
 
 

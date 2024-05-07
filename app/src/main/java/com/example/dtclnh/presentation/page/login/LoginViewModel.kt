@@ -12,21 +12,21 @@ import androidx.lifecycle.viewModelScope
 import com.example.dtclnh.core.Constants.API_KEY_KEY
 import com.example.dtclnh.core.Constants.API_URL_KEY
 import com.example.dtclnh.core.Constants.CLIENT_ID_KEY
-import com.example.dtclnh.di.EndpointInterceptor
-import com.example.dtclnh.di.HeaderInterceptor
 import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.SmsModel
 import com.example.dtclnh.domain.model.SyncStatus
-import com.example.dtclnh.domain.usecase.BackUpUseCase
 import com.example.dtclnh.domain.usecase.CountMessageNotBackUpUseCase
 import com.example.dtclnh.domain.usecase.FetchAllSmsForBackUpUseCase
+import com.example.dtclnh.domain.usecase.LoadAllSmsInDbUseCase
 import com.example.dtclnh.domain.usecase.SaveSmsUseCase
 import com.example.dtclnh.presentation.base.ext.postNext
 import com.example.dtclnh.presentation.base.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.internal.wait
 import javax.inject.Inject
 
@@ -36,11 +36,11 @@ class LoginViewModel @Inject constructor(
     private val saveSmsUseCase: SaveSmsUseCase,
     private val application: Application,
     private val sharedPreferences: SharedPreferences,
-    private val countMessageNotBackUpUseCase: CountMessageNotBackUpUseCase
+    private val countMessageNotBackUpUseCase: CountMessageNotBackUpUseCase,
+    private val loadAllSmsInDbUseCase: LoadAllSmsInDbUseCase
 
 
 ) : BaseViewModel() {
-    private val _syncStatus = MutableLiveData<SyncStatus>()
 
 
     private val context: Context = application.applicationContext
@@ -52,6 +52,17 @@ class LoginViewModel @Inject constructor(
     val stateLiveData: LiveData<LoginViewState<MutableList<SmsModel>>> = _stateLiveData
 
     init {
+       viewModelScope.launch {
+
+           loadAllSmsInDbUseCase.execute().collect {
+               it.forEach { s ->
+                   if (s.backupStatus == BackupStatus.SUCCESS) {
+                       Log.e("AMBE1203", "${s.sender} ${s.content}")
+                   }
+               }
+
+           }
+       }
 
     }
 
@@ -98,18 +109,7 @@ class LoginViewModel @Inject constructor(
             cursor.close()
             if (listSms.isNotEmpty()) {
                 viewModelScope.launch {
-                    async {
-                        saveSmsUseCase.execute(listSms)
-                    }.await()
-
-                    val x = async {
-                        countMessageNotBackUpUseCase.execute()
-                    }.await()
-                    _stateLiveData.postNext { state ->
-                        state.copy(
-                            numberSmsNotBackUp = x.count()
-                        )
-                    }
+                    saveSmsUseCase.execute(listSms)
 
                 }
             }
@@ -118,11 +118,24 @@ class LoginViewModel @Inject constructor(
         }
 
 
-        viewModelScope.launch {
-
-        }
-
     }
+
+    init {
+        countNumberSmsForBackUp()
+    }
+
+    fun countNumberSmsForBackUp() {
+        viewModelScope.launch {
+            countMessageNotBackUpUseCase.execute().collect {
+                _stateLiveData.postNext { state ->
+                    state.copy(
+                        numberSmsNotBackUp = it
+                    )
+                }
+            }
+        }
+    }
+
 
     fun fetchAllSmsFromLocal() {
         viewModelScope.launch {

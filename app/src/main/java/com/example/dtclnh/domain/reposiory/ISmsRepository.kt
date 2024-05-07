@@ -16,11 +16,10 @@ interface ISmsRepository {
 
     suspend fun getAllSmsInDb(): Flow<MutableList<SmsModel>>
     suspend fun deleteNonExistingEntities(
-        receivedAts: List<String>,
         receivedAtsInbox: List<String>,
     )
 
-    suspend fun backup(sms: SmsDataWrapper): Flow<IOResults<BaseResponse<SmsModel>>>
+    suspend fun backup(sms: SmsDataWrapper): Flow<IOResults<BaseResponse<List<SmsModel>>>>
 
 
     suspend fun findAndUpdateStatus(receivedAts: List<String>)

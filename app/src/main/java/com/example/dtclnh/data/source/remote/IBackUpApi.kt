@@ -12,5 +12,5 @@ import javax.inject.Singleton
 @Singleton
 interface IBackUpApi {
     @POST("/post")
-    suspend fun backUp(@Body smsDataWrapper: SmsDataWrapper): Response<BaseResponse<SmsModel>>
+    suspend fun backUp(@Body smsDataWrapper: SmsDataWrapper): Response<BaseResponse<List<SmsModel>>>
 }

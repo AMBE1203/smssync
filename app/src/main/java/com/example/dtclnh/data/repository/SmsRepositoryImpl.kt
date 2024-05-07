@@ -29,19 +29,10 @@ class SmsRepositoryImpl @Inject constructor(
                 database.smsDao().insert(it)
             }
         }
-        sms.forEach {
-            Log.e("AMBE1203 ", "${it.toString()}")
+        kotlin.run {
+            deleteNonExistingEntities(sms.map { it.receivedAt }.toList())
         }
-        getAllSmsInDb().collect {
-            val receivedAts = it.map { sms ->
-                sms.receivedAt
-            }.toList()
 
-            val receivedAtsInbox = sms.map { s ->
-                s.receivedAt
-            }
-            deleteNonExistingEntities(receivedAts, receivedAtsInbox)
-        }
     }
 
     override suspend fun getAllSmsForBackup(): Flow<MutableList<SmsModel>> =
@@ -51,16 +42,21 @@ class SmsRepositoryImpl @Inject constructor(
         database.smsDao().loadAllSMSInDb()
 
     override suspend fun deleteNonExistingEntities(
-        receivedAts: List<String>,
         receivedAtsInbox: List<String>,
     ) {
-        val nonExistingIds = receivedAtsInbox.filter { id -> !receivedAts.contains(id) }
-        database.smsDao().deleteNonExistingEntities(nonExistingIds, BackupStatus.SUCCESS)
+        database.smsDao().loadSmsByBackupStatus(backupStatus = BackupStatus.SUCCESS).collect { i ->
+            val idsInDb = i.map { it.receivedAt }
+            val idsToDelete = idsInDb.filterNot { receivedAtsInbox.contains(it) }
+            if (idsToDelete.isNotEmpty()) {
+                database.smsDao().deleteNonExistingEntities(idsToDelete)
+            }
+        }
+
     }
 
     override suspend fun backup(
         sms: SmsDataWrapper,
-    ): Flow<IOResults<BaseResponse<SmsModel>>> = performSafeNetworkApiCall {
+    ): Flow<IOResults<BaseResponse<List<SmsModel>>>> = performSafeNetworkApiCall {
         iBackUpApi.backUp(sms)
     }
 

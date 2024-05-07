@@ -71,7 +71,7 @@ class LoginFragment : BaseFragment() {
     private val requestForegroundPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissionsStatusMap ->
             if (!permissionsStatusMap.containsValue(false)) {
-                loginViewModel.fetchAllSmsFromLocal()
+                loginViewModel.countNumberSmsForBackUp()
                 val serviceIntent = Intent(requireContext(), SyncService::class.java)
                 requireContext().startService(serviceIntent)
             } else {
@@ -146,7 +146,7 @@ class LoginFragment : BaseFragment() {
                     ) == PackageManager.PERMISSION_GRANTED
                 ) {
                     if (isLink(loginViewModel.getApiUrl() ?: "")) {
-                        loginViewModel.fetchAllSmsFromLocal()
+                        loginViewModel.countNumberSmsForBackUp()
                         val serviceIntent = Intent(requireContext(), SyncService::class.java)
                         requireContext().startService(serviceIntent)
                     } else {
@@ -235,6 +235,7 @@ class LoginFragment : BaseFragment() {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == ACTION_WORK_SUCCESS) {
+                loginViewModel.countNumberSmsForBackUp()
                 viewBinding.mProgressBar.visibility = View.GONE
                 viewBinding.tvStatus.text = getString(R.string.sync_success)
 
@@ -251,6 +252,8 @@ class LoginFragment : BaseFragment() {
             }
         }
     }
+
+
 
     override fun onDestroyView() {
         super.onDestroyView()

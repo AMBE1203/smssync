@@ -21,7 +21,6 @@ suspend fun <T : Any> performSafeNetworkApiCall(
     var delayDuration = 1000L
     val delayFactor = 2
 
-    Log.e("AMBE1203", " vao day")
     return flow {
         val response = networkApiCall()
         if (response.isSuccessful) {
