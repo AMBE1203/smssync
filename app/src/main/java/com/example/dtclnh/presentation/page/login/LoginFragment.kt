@@ -17,6 +17,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
@@ -27,7 +28,11 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.viewbinding.ViewBinding
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import com.example.dtclnh.R
 import com.example.dtclnh.core.Constants
+import com.example.dtclnh.core.Constants.ACTION_WORK_FAIL
+import com.example.dtclnh.core.Constants.ACTION_WORK_RUNNING
+import com.example.dtclnh.core.Constants.ACTION_WORK_SUCCESS
 import com.example.dtclnh.core.Constants.WORK_MANAGER_ID
 import com.example.dtclnh.core.Constants.WORK_MANAGER_TAG
 import com.example.dtclnh.core.Errors
@@ -134,9 +139,20 @@ class LoginFragment : BaseFragment() {
                         Manifest.permission.READ_SMS
                     ) == PackageManager.PERMISSION_GRANTED
                 ) {
-                    loginViewModel.fetchAllSmsFromLocal()
-                    val serviceIntent = Intent(requireContext(), SyncService::class.java)
-                    requireContext().startService(serviceIntent)
+                    if (loginViewModel.getApiUrl()
+                            ?.startsWith("https://") == true || loginViewModel.getApiUrl()
+                            ?.startsWith("http://") == true
+                    ) {
+                        loginViewModel.fetchAllSmsFromLocal()
+                        val serviceIntent = Intent(requireContext(), SyncService::class.java)
+                        requireContext().startService(serviceIntent)
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.api_url_incorrect),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 } else {
                     requestForegroundPermissionLauncher.launch(
                         arrayOf(
@@ -161,33 +177,8 @@ class LoginFragment : BaseFragment() {
 
         }
 
-
         viewBinding.switchOnOff.isChecked =
             isServiceRunning(requireContext(), SyncService::class.java)
-
-        WorkManager.getInstance(requireActivity().applicationContext)
-            .getWorkInfosByTagLiveData(Constants.WORK_MANAGER_TAG).observe(this) {
-                if (it.isNotEmpty()) {
-                    val x = it[0]
-                    when (x.state) {
-                        WorkInfo.State.SUCCEEDED -> {
-                            viewBinding.tvStatus.setText("aaaa")
-
-                        }
-                        WorkInfo.State.FAILED -> {
-                            viewBinding.tvStatus.setText("bbbb")
-
-                        }
-                        else -> {}
-                    }
-                }
-
-
-            }
-
-
-
-
 
         if (ContextCompat.checkSelfPermission(
                 requireContext(),
@@ -216,31 +207,17 @@ class LoginFragment : BaseFragment() {
             loginViewModel.setClientId(it.toString().trim())
         }
 
-        WorkManager.getInstance(requireActivity().applicationContext)
-            .getWorkInfosByTagLiveData(WORK_MANAGER_TAG)
-            .observe(this) { workInfos ->
-                if (workInfos != null) {
-                    workInfos.forEach { workInfo ->
-                        val successData = workInfo.outputData.getBoolean("work_success_flag", false)
-                        if (successData) {
 
-                            Log.e("AMBE1203 ", " vao day 11")
-                            // Xử lý khi công việc thành công
-                            // ...
-                        }
-                    }
-
-
-                }
-            }
-
-        val filter = IntentFilter("action_work_success")
+        val filter = IntentFilter(ACTION_WORK_SUCCESS)
         LocalBroadcastManager.getInstance(requireContext().applicationContext)
             .registerReceiver(receiver, filter)
 
-        val filterRunning = IntentFilter("action_work_running")
+        val filterRunning = IntentFilter(ACTION_WORK_RUNNING)
         LocalBroadcastManager.getInstance(requireContext().applicationContext)
             .registerReceiver(receiver, filterRunning)
+        val filterFail = IntentFilter(ACTION_WORK_FAIL)
+        LocalBroadcastManager.getInstance(requireContext().applicationContext)
+            .registerReceiver(receiver, filterFail)
 
 
     }
@@ -248,13 +225,20 @@ class LoginFragment : BaseFragment() {
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "action_work_success") {
-                // Xử lý khi công việc thành công
-                // ...
-                viewBinding.tvStatus.setText("action_work_success")
+            if (intent?.action == ACTION_WORK_SUCCESS) {
+                viewBinding.mProgressBar.visibility = View.GONE
+                viewBinding.tvStatus.text = getString(R.string.sync_success)
 
-            } else if (intent?.action == "action_work_running") {
-                viewBinding.tvStatus.setText("action_work_running")
+            } else if (intent?.action == ACTION_WORK_RUNNING) {
+                viewBinding.mProgressBar.visibility = View.VISIBLE
+                viewBinding.tvStatus.text = getString(R.string.sync_running)
+            } else if (intent?.action == ACTION_WORK_FAIL) {
+                viewBinding.mProgressBar.visibility = View.GONE
+                val error = intent.extras?.getString("error")
+                error?.let {
+                    Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                }
+                viewBinding.tvStatus.text = getString(R.string.sync_fail)
             }
         }
     }
@@ -302,18 +286,10 @@ class LoginFragment : BaseFragment() {
         observe(loginViewModel.stateLiveData, this::onNewStateSms)
     }
 
-    private fun onNewSyncStatus(status: SyncStatus) {
-        when (status) {
-            SyncStatus.SYNCING -> viewBinding.tvStatus.setText("a")
-            SyncStatus.SUCCESS -> viewBinding.tvStatus.setText("b")
-            SyncStatus.ERROR -> viewBinding.tvStatus.setText("c")
-        }
-
-    }
 
     private fun onNewStateSms(state: LoginViewState<MutableList<SmsModel>>) {
-        if (state.isSuccess?.isNotEmpty() == true) {
-            viewBinding.tvCount.text = "${state.isSuccess.size}"
+        if (state.numberSmsNotBackUp != null) {
+            viewBinding.tvCount.text = "${state.numberSmsNotBackUp}"
         } else {
             viewBinding.tvCount.text = "0"
         }

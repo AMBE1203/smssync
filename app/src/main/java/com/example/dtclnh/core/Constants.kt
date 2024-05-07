@@ -12,4 +12,9 @@ object Constants {
     const val WORK_MANAGER_ID = "WORK_MANAGER_ID"
     const val WORK_MANAGER_TAG = "WORK_MANAGER_TAG"
 
+    const val ACTION_WORK_RUNNING = "action_work_running"
+    const val ACTION_WORK_SUCCESS = "action_work_success"
+    const val ACTION_WORK_FAIL = "action_work_fail"
+    const val CHUNK_SIZE = 5
+
 }

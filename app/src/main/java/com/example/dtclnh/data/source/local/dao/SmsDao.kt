@@ -18,6 +18,8 @@ interface SmsDao {
     @Query("SELECT COUNT(*) FROM SMS WHERE receivedAt = :receivedAt AND sender = :sender")
     fun getMessageCountByDateTimeAndSender(receivedAt: String, sender: String): Int
 
+    @Query("SELECT COUNT(*) FROM SMS WHERE backupStatus = :backupStatus")
+    fun countMessageNotBackUp(backupStatus: BackupStatus): Int
 
     @Query("SELECT * FROM SMS WHERE backupStatus = :backupStatus")
     fun loadSmsByBackupStatus(backupStatus: BackupStatus): Flow<MutableList<SmsModel>>
@@ -33,6 +35,12 @@ interface SmsDao {
         receivedAts: List<String>,
         backupStatus: BackupStatus
     )
+
+    @Query("SELECT * FROM SMS WHERE receivedAt IN (:receivedAts)")
+    suspend fun findByReceivedAt(receivedAts: List<String>): List<SmsModel>
+
+    @Query("UPDATE SMS SET backupStatus = :backupStatus WHERE receivedAt IN (:receivedAts)")
+    suspend fun updateStatusByReceivedAt(receivedAts: List<String>, backupStatus: BackupStatus)
 
     @Query("DELETE FROM SMS")
     suspend fun deleteAll()

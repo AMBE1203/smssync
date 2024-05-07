@@ -2,6 +2,7 @@ package com.example.dtclnh.presentation.broadcast
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -9,17 +10,37 @@ import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.example.dtclnh.core.Constants.ACTION_WORK_FAIL
+import com.example.dtclnh.core.Constants.ACTION_WORK_RUNNING
+import com.example.dtclnh.core.Constants.ACTION_WORK_SUCCESS
+import com.example.dtclnh.core.Constants.API_KEY_KEY
+import com.example.dtclnh.core.Constants.API_URL_KEY
+import com.example.dtclnh.core.Constants.CHUNK_SIZE
+import com.example.dtclnh.core.Constants.CLIENT_ID
+import com.example.dtclnh.core.Constants.CLIENT_ID_KEY
+import com.example.dtclnh.core.IOResults
+import com.example.dtclnh.core.getViewStateFlowForNetworkCall
 import com.example.dtclnh.di.EndpointInterceptor
 import com.example.dtclnh.di.HeaderInterceptor
+import com.example.dtclnh.domain.model.SmsDataWrapper
+import com.example.dtclnh.domain.model.SmsParam
 import com.example.dtclnh.domain.model.SyncEvent
 import com.example.dtclnh.domain.model.SyncStatus
 import com.example.dtclnh.domain.usecase.BackUpUseCase
+import com.example.dtclnh.domain.usecase.FetchAllSmsForBackUpUseCase
+import com.example.dtclnh.domain.usecase.FindAndUpdateStatusUseCase
+import com.example.dtclnh.presentation.base.ext.toDateTimeString
 import com.example.dtclnh.presentation.page.login.LoginViewModel
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @HiltWorker
 class DataSyncWorker @AssistedInject constructor(
@@ -28,66 +49,106 @@ class DataSyncWorker @AssistedInject constructor(
     private val backUpUseCase: BackUpUseCase,
     private val endpointInterceptor: EndpointInterceptor,
     private val headerInterceptor: HeaderInterceptor,
+    private val sharedPreferences: SharedPreferences,
+    private val fetchAllSmsForBackUpUseCase: FetchAllSmsForBackUpUseCase,
+    private val findAndUpdateStatusUseCase: FindAndUpdateStatusUseCase
 
 ) :
     CoroutineWorker(context, params) {
 
 
-    companion object {
-        const val Progress = "Progress"
-        private const val delayDuration = 1L
-        const val WORK_SUCCESS_FLAG = "work_success_flag"
-        const val ACTION_WORK_RUNNING = "action_work_running"
-        const val ACTION_WORK_SUCCESS = "action_work_success"
-
-    }
-
-
     override suspend fun doWork(): Result {
-        val intentRunning = Intent(ACTION_WORK_RUNNING)
-        LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intentRunning)
-        Log.e("AMBE1203", "dowork")
-        val newEndpoint = "http://125.212.238.157:8460/api/v1/sms/new/batch"
-        endpointInterceptor.setNewEndpoint(newEndpoint)
-        val headers = mapOf(
-            "Authorization" to "Basic c21zc3luYzpzbXNzeW5jQDIwMjQ=",
-            "Content-Type" to "application/json"
-        )
-        headerInterceptor.setHeaders(headers)
-        backUpUseCase.execute(mutableListOf()).collect {
-            Log.e("AMBE1203", it.toString())
+
+        return try {
+
+
+            val newEndpoint = sharedPreferences.getString(API_URL_KEY, "")
+                ?: "http://125.212.238.157:8460/api/v1/sms/new/batch"
+            val authorization =
+                sharedPreferences.getString(API_KEY_KEY, "") ?: "Basic c21zc3luYzpzbXNzeW5jQDIwMjQ="
+            val clientId =
+                sharedPreferences.getString(CLIENT_ID_KEY, "") ?: CLIENT_ID
+            Log.e("AMBE1203", "newEndpoint $newEndpoint")
+            Log.e("AMBE1203", "authorization $authorization")
+            endpointInterceptor.setNewEndpoint(newEndpoint)
+            val headers = mapOf(
+                "Authorization" to authorization,
+                "Content-Type" to "application/json"
+            )
+            headerInterceptor.setHeaders(headers)
+
+            fetchAllSmsForBackUpUseCase.execute().collect { smsInbox ->
+                if (smsInbox.isNotEmpty()) {
+
+                    withContext(Dispatchers.Default) {
+                        val jobs = mutableListOf<Job>()
+                        smsInbox.chunked(CHUNK_SIZE) { chunk ->
+                            Log.e("AMBE1203", "size: ${chunk.size}")
+                            val job = launch {
+                                try {
+
+                                    val params = chunk.map {
+                                        SmsParam(
+                                            smsId = it.smsId,
+                                            clientId = clientId,
+                                            sender = it.sender,
+                                            content = it.content,
+                                            receivedAt = it.receivedAt.toLong().toDateTimeString()
+                                        )
+                                    }.toList()
+
+                                    val smsDataWrapper = SmsDataWrapper(data = params)
+                                    getViewStateFlowForNetworkCall {
+                                        backUpUseCase.execute(smsDataWrapper)
+                                    }.collect { r ->
+                                        if (r.isLoading) {
+                                            val intentRunning = Intent(ACTION_WORK_RUNNING)
+                                            LocalBroadcastManager.getInstance(applicationContext)
+                                                .sendBroadcast(intentRunning)
+
+                                        } else if (r.throwable != null) {
+                                            Log.e(
+                                                "AMBE1203",
+                                                "throwable ${r.throwable.localizedMessage}"
+                                            )
+                                            val intent = Intent(ACTION_WORK_FAIL)
+                                            intent.putExtra("error", r.throwable.localizedMessage)
+                                            LocalBroadcastManager.getInstance(applicationContext)
+                                                .sendBroadcast(intent)
+                                        } else if (r.result != null) {
+                                            Log.e("AMBE1203", "OnSuccess ${r.result}")
+                                            findAndUpdateStatusUseCase.execute(chunk.map { it.receivedAt }
+                                                .toList())
+
+
+                                            val intent = Intent(ACTION_WORK_SUCCESS)
+                                            LocalBroadcastManager.getInstance(applicationContext)
+                                                .sendBroadcast(intent)
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("AMBE1203", "throwable ${e.localizedMessage}")
+                                    val intent = Intent(ACTION_WORK_FAIL)
+                                    intent.putExtra("error", e.localizedMessage)
+                                    LocalBroadcastManager.getInstance(applicationContext)
+                                        .sendBroadcast(intent)
+                                }
+                            }
+                            jobs.add(job)
+                        }
+                        jobs.joinAll()
+                    }
+
+
+                }
+
+            }
+
+
+
+            Result.success()
+        } catch (e: Exception) {
+            Result.retry()
         }
-
-//        return if (success) {
-//            Result.success()
-//        } else {
-//            Result.retry()
-//        }
-
-        val firstUpdate = workDataOf(Progress to 0)
-        val lastUpdate = workDataOf(Progress to 100)
-
-
-        setProgressAsync(firstUpdate)
-        delay(3000L)
-        setProgressAsync(lastUpdate)
-        val successData = workDataOf(WORK_SUCCESS_FLAG to true)
-        val intent = Intent(ACTION_WORK_SUCCESS)
-        LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
-
-
-        return  Result.success(successData);
-
-//        syncEventFlow.emit(SyncEvent.SyncStarted)
-
-//        return try {
-////            val result = syncDataToServer()
-//            //todo call API
-////            syncEventFlow.emit(SyncEvent.SyncSuccess("Success"))
-//            Result.success()
-//        } catch (e: Exception) {
-////            syncEventFlow.emit(SyncEvent.SyncError(e))
-//            Result.retry()
-//        }
     }
 }

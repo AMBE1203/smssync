@@ -6,6 +6,7 @@ import com.example.dtclnh.data.source.local.AppDatabase
 import com.example.dtclnh.data.source.remote.IBackUpApi
 import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.BaseResponse
+import com.example.dtclnh.domain.model.SmsDataWrapper
 import com.example.dtclnh.domain.model.SmsModel
 import com.example.dtclnh.domain.reposiory.ISmsRepository
 import kotlinx.coroutines.flow.Flow
@@ -54,10 +55,21 @@ class SmsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun backup(
-        sms: MutableList<SmsModel>,
+        sms: SmsDataWrapper,
     ): Flow<IOResults<BaseResponse<SmsModel>>> = performSafeNetworkApiCall {
         iBackUpApi.backUp(sms)
     }
+
+    override suspend fun findAndUpdateStatus(receivedAts: List<String>) {
+        val entities = database.smsDao().findByReceivedAt(receivedAts)
+        if (entities.isNotEmpty()) {
+            val idsToUpdate = entities.map { it.receivedAt }
+            database.smsDao().updateStatusByReceivedAt(idsToUpdate, BackupStatus.SUCCESS)
+        }
+    }
+
+    override fun countMessageNotBackUp(): Int =
+        database.smsDao().countMessageNotBackUp(backupStatus = BackupStatus.FAIL)
 
 
     private fun messageExists(receivedAt: String, sender: String): Boolean {

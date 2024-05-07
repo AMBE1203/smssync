@@ -8,10 +8,9 @@ import com.example.dtclnh.core.Constants.BASE_URL
 import com.example.dtclnh.data.repository.SmsRepositoryImpl
 import com.example.dtclnh.data.source.local.AppDatabase
 import com.example.dtclnh.data.source.remote.IBackUpApi
-import com.example.dtclnh.domain.model.SyncEvent
 import com.example.dtclnh.domain.reposiory.ISmsRepository
 import com.example.dtclnh.domain.usecase.BackUpUseCase
-import com.example.dtclnh.domain.usecase.FetchAllSmsUseCase
+import com.example.dtclnh.domain.usecase.FetchAllSmsForBackUpUseCase
 import com.example.dtclnh.domain.usecase.SaveSmsUseCase
 import com.google.gson.Gson
 import dagger.Module
@@ -19,8 +18,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -147,8 +144,8 @@ class NetworkModule {
         SaveSmsUseCase(repository = repository)
 
     @Provides
-    fun providerFetchAllSmsUseCase(repository: ISmsRepository): FetchAllSmsUseCase =
-        FetchAllSmsUseCase(repository = repository)
+    fun providerFetchAllSmsUseCase(repository: ISmsRepository): FetchAllSmsForBackUpUseCase =
+        FetchAllSmsForBackUpUseCase(repository = repository)
 
     @Provides
     fun providerBackUpUseCase(repository: ISmsRepository): BackUpUseCase =

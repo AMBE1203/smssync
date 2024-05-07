@@ -29,4 +29,8 @@
     <string name="on_off">On/Off backup:</string>
     <string name="count">Count:</string>
     <string name="status">Status:</string>
+    <string name="api_url_incorrect">Api url is incorrect.</string>
+    <string name="sync_running">syncing</string>
+    <string name="sync_success">success</string>
+    <string name="sync_fail">fail</string>
 </resources>

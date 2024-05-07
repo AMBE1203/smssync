@@ -4,6 +4,7 @@ package com.example.dtclnh.domain.reposiory
 import com.example.dtclnh.core.IOResults
 import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.BaseResponse
+import com.example.dtclnh.domain.model.SmsDataWrapper
 import com.example.dtclnh.domain.model.SmsModel
 import kotlinx.coroutines.flow.Flow
 
@@ -19,7 +20,11 @@ interface ISmsRepository {
         receivedAtsInbox: List<String>,
     )
 
-    suspend fun backup(sms: MutableList<SmsModel>): Flow<IOResults<BaseResponse<SmsModel>>>
+    suspend fun backup(sms: SmsDataWrapper): Flow<IOResults<BaseResponse<SmsModel>>>
+
+
+    suspend fun findAndUpdateStatus(receivedAts: List<String>)
+    fun countMessageNotBackUp(): Int
 
 
 }

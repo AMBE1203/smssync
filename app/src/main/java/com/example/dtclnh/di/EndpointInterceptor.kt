@@ -16,7 +16,6 @@ class EndpointInterceptor : Interceptor {
         val originalRequest: Request = chain.request()
         val requestBuilder = originalRequest.newBuilder()
 
-        // Thay đổi endpoint của request
         newEndpoint?.let {
             requestBuilder.url(it)
         }

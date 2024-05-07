@@ -12,4 +12,5 @@ data class LoginViewState<T : Any>(
     val clientId: String? = CLIENT_ID,
     val apiKey: String? = null,
     val apiUrl: String? = null,
+    val numberSmsNotBackUp: Int? = 0
 ) : BaseViewState<T>(isShowLoading, isError, isSuccess)
