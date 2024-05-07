@@ -5,6 +5,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
@@ -23,8 +24,10 @@ import com.example.dtclnh.domain.usecase.SaveSmsUseCase
 import com.example.dtclnh.presentation.base.ext.postNext
 import com.example.dtclnh.presentation.base.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import okhttp3.internal.wait
 import javax.inject.Inject
 
 @HiltViewModel
@@ -93,22 +96,30 @@ class LoginViewModel @Inject constructor(
                 } while (cursor.moveToNext())
             }
             cursor.close()
-
             if (listSms.isNotEmpty()) {
                 viewModelScope.launch {
-                    saveSmsUseCase.execute(listSms)
+                    async {
+                        saveSmsUseCase.execute(listSms)
+                    }.await()
+
+                    val x = async {
+                        countMessageNotBackUpUseCase.execute()
+                    }.await()
+                    _stateLiveData.postNext { state ->
+                        state.copy(
+                            numberSmsNotBackUp = x.count()
+                        )
+                    }
+
                 }
             }
+
+
         }
 
 
         viewModelScope.launch {
-            _stateLiveData.postNext { state ->
-                state.copy(
-                    numberSmsNotBackUp = countMessageNotBackUpUseCase.execute()
-                )
 
-            }
         }
 
     }

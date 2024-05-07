@@ -48,6 +48,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import retrofit2.HttpException
 import java.util.concurrent.ExecutionException
+import java.util.regex.Pattern
 
 
 @AndroidEntryPoint
@@ -127,6 +128,11 @@ class LoginFragment : BaseFragment() {
 
         loginViewModel.initData()
 
+        viewBinding.switchOnOff.isEnabled =
+            loginViewModel.getClientId()?.isNotEmpty() == true
+                    && loginViewModel.getApiUrl()?.isNotEmpty() == true
+                    && loginViewModel.getApiKey()?.isNotEmpty() == true
+
 
 
         viewBinding.switchOnOff.setOnCheckedChangeListener { _, isChecked ->
@@ -139,10 +145,7 @@ class LoginFragment : BaseFragment() {
                         Manifest.permission.READ_SMS
                     ) == PackageManager.PERMISSION_GRANTED
                 ) {
-                    if (loginViewModel.getApiUrl()
-                            ?.startsWith("https://") == true || loginViewModel.getApiUrl()
-                            ?.startsWith("http://") == true
-                    ) {
+                    if (isLink(loginViewModel.getApiUrl() ?: "")) {
                         loginViewModel.fetchAllSmsFromLocal()
                         val serviceIntent = Intent(requireContext(), SyncService::class.java)
                         requireContext().startService(serviceIntent)
@@ -152,6 +155,7 @@ class LoginFragment : BaseFragment() {
                             getString(R.string.api_url_incorrect),
                             Toast.LENGTH_LONG
                         ).show()
+                        viewBinding.switchOnOff.isChecked = false
                     }
                 } else {
                     requestForegroundPermissionLauncher.launch(
@@ -222,6 +226,11 @@ class LoginFragment : BaseFragment() {
 
     }
 
+    private fun isLink(inputString: String): Boolean {
+        val pattern = Pattern.compile("^https?://\\S+")
+        val matcher = pattern.matcher(inputString)
+        return matcher.matches()
+    }
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {

@@ -1,5 +1,6 @@
 package com.example.dtclnh.data.repository
 
+import android.util.Log
 import com.example.dtclnh.core.IOResults
 import com.example.dtclnh.core.performSafeNetworkApiCall
 import com.example.dtclnh.data.source.local.AppDatabase
@@ -27,6 +28,9 @@ class SmsRepositoryImpl @Inject constructor(
             if (!messageExists(it.receivedAt, it.sender)) {
                 database.smsDao().insert(it)
             }
+        }
+        sms.forEach {
+            Log.e("AMBE1203 ", "${it.toString()}")
         }
         getAllSmsInDb().collect {
             val receivedAts = it.map { sms ->
@@ -68,7 +72,7 @@ class SmsRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun countMessageNotBackUp(): Int =
+    override suspend fun countMessageNotBackUp(): Flow<Int> =
         database.smsDao().countMessageNotBackUp(backupStatus = BackupStatus.FAIL)
 
 
