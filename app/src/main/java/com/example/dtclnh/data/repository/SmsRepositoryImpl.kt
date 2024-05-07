@@ -9,6 +9,8 @@ import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsModel
 import com.example.dtclnh.domain.reposiory.ISmsRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,10 +27,31 @@ class SmsRepositoryImpl @Inject constructor(
                 database.smsDao().insert(it)
             }
         }
+        getAllSmsInDb().collect {
+            val receivedAts = it.map { sms ->
+                sms.receivedAt
+            }.toList()
+
+            val receivedAtsInbox = sms.map { s ->
+                s.receivedAt
+            }
+            deleteNonExistingEntities(receivedAts, receivedAtsInbox)
+        }
     }
 
     override suspend fun getAllSmsForBackup(): Flow<MutableList<SmsModel>> =
         database.smsDao().loadSmsByBackupStatus(backupStatus = BackupStatus.FAIL)
+
+    override suspend fun getAllSmsInDb(): Flow<MutableList<SmsModel>> =
+        database.smsDao().loadAllSMSInDb()
+
+    override suspend fun deleteNonExistingEntities(
+        receivedAts: List<String>,
+        receivedAtsInbox: List<String>,
+    ) {
+        val nonExistingIds = receivedAtsInbox.filter { id -> !receivedAts.contains(id) }
+        database.smsDao().deleteNonExistingEntities(nonExistingIds, BackupStatus.SUCCESS)
+    }
 
     override suspend fun backup(
         sms: MutableList<SmsModel>,

@@ -22,8 +22,17 @@ interface SmsDao {
     @Query("SELECT * FROM SMS WHERE backupStatus = :backupStatus")
     fun loadSmsByBackupStatus(backupStatus: BackupStatus): Flow<MutableList<SmsModel>>
 
+    @Query("SELECT * FROM SMS")
+    fun loadAllSMSInDb(): Flow<MutableList<SmsModel>>
+
     @Delete
     suspend fun delete(smsModel: SmsModel)
+
+    @Query("DELETE FROM SMS WHERE receivedAt NOT IN (:receivedAts) AND backupStatus = :backupStatus")
+    suspend fun deleteNonExistingEntities(
+        receivedAts: List<String>,
+        backupStatus: BackupStatus
+    )
 
     @Query("DELETE FROM SMS")
     suspend fun deleteAll()
