@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.example.dtclnh.di.SyncModule
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
