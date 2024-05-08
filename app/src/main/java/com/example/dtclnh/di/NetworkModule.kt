@@ -127,9 +127,10 @@ class NetworkModule {
     @Provides
     fun provideSmsRepository(
         appDatabase: AppDatabase,
-        iBackUpApi: IBackUpApi
+        iBackUpApi: IBackUpApi,
+        @ApplicationContext context: Context
     ): ISmsRepository {
-        return SmsRepositoryImpl(appDatabase, iBackUpApi)
+        return SmsRepositoryImpl(appDatabase, iBackUpApi, context)
     }
 
     @Singleton

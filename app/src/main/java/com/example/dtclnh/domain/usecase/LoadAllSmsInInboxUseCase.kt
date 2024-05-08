@@ -7,7 +7,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class FetchAllSmsForBackUpUseCase @Inject constructor(private val repository: ISmsRepository) {
-    suspend fun execute(): MutableList<SmsModel> = repository.getAllSmsForBackup()
+class LoadAllSmsInInboxUseCase @Inject constructor(private val repository: ISmsRepository) {
+    suspend fun execute(): MutableList<SmsModel> = repository.getAllSmsInInbox()
 
 }

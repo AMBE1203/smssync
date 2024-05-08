@@ -23,9 +23,7 @@ import com.example.dtclnh.core.getViewStateFlowForNetworkCall
 import com.example.dtclnh.di.EndpointInterceptor
 import com.example.dtclnh.di.HeaderInterceptor
 import com.example.dtclnh.domain.model.*
-import com.example.dtclnh.domain.usecase.BackUpUseCase
-import com.example.dtclnh.domain.usecase.FetchAllSmsForBackUpUseCase
-import com.example.dtclnh.domain.usecase.FindAndUpdateStatusUseCase
+import com.example.dtclnh.domain.usecase.*
 import com.example.dtclnh.presentation.base.ext.toDateTimeString
 import com.example.dtclnh.presentation.page.login.LoginViewModel
 import dagger.assisted.Assisted
@@ -48,29 +46,38 @@ class DataSyncWorker @AssistedInject constructor(
     private val headerInterceptor: HeaderInterceptor,
     private val sharedPreferences: SharedPreferences,
     private val fetchAllSmsForBackUpUseCase: FetchAllSmsForBackUpUseCase,
-    private val findAndUpdateStatusUseCase: FindAndUpdateStatusUseCase
+    private val findAndUpdateStatusUseCase: FindAndUpdateStatusUseCase,
+    private val loadAllSmsInInboxUseCase: LoadAllSmsInInboxUseCase,
+    private val saveSmsUseCase: SaveSmsUseCase,
 
-) :
+    ) :
     CoroutineWorker(context, params) {
 
 
     override suspend fun doWork(): Result {
 
         return try {
-            val newEndpoint = sharedPreferences.getString(API_URL_KEY, "")
-            val authorization =
-                sharedPreferences.getString(API_KEY_KEY, "")  ?: ""
-            val clientId =
-                sharedPreferences.getString(CLIENT_ID_KEY, "") ?: CLIENT_ID
-            newEndpoint?.let {
-                endpointInterceptor.setNewEndpoint(it)
-            }
-            val headers = mapOf(
-                "Authorization" to authorization,
-                "Content-Type" to "application/json"
-            )
-            headerInterceptor.setHeaders(headers)
-            fetchAllSmsForBackUpUseCase.execute().collect { smsInbox ->
+
+            val listSms = loadAllSmsInInboxUseCase.execute()
+
+            if (listSms.isNotEmpty()) {
+                saveSmsUseCase.execute(listSms)
+                val newEndpoint = sharedPreferences.getString(API_URL_KEY, "")
+                val authorization =
+                    sharedPreferences.getString(API_KEY_KEY, "") ?: ""
+                val clientId =
+                    sharedPreferences.getString(CLIENT_ID_KEY, "") ?: CLIENT_ID
+                newEndpoint?.let {
+                    endpointInterceptor.setNewEndpoint(it)
+                }
+                val headers = mapOf(
+                    "Authorization" to authorization,
+                    "Content-Type" to "application/json"
+                )
+                headerInterceptor.setHeaders(headers)
+                val smsInbox = fetchAllSmsForBackUpUseCase.execute()
+                Log.e("AMBE1203 size smsInbox", "${smsInbox.size}")
+
                 if (smsInbox.isNotEmpty()) {
 
                     withContext(Dispatchers.Default) {
@@ -128,7 +135,6 @@ class DataSyncWorker @AssistedInject constructor(
                                                     .sendBroadcast(intent)
                                             }
 
-
                                         }
                                     }
                                 } catch (e: Exception) {
@@ -143,7 +149,6 @@ class DataSyncWorker @AssistedInject constructor(
                         }
                         jobs.joinAll()
                     }
-
 
                 }
 

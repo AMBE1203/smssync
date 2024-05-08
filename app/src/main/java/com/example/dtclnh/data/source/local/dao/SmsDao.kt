@@ -22,7 +22,7 @@ interface SmsDao {
     fun countMessageNotBackUp(backupStatus: BackupStatus): Flow<Int>
 
     @Query("SELECT * FROM SMS WHERE backupStatus = :backupStatus")
-    fun loadSmsByBackupStatus(backupStatus: BackupStatus): Flow<MutableList<SmsModel>>
+    fun loadSmsByBackupStatus(backupStatus: BackupStatus): MutableList<SmsModel>
 
     @Query("SELECT * FROM SMS")
     fun loadAllSMSInDb(): Flow<MutableList<SmsModel>>

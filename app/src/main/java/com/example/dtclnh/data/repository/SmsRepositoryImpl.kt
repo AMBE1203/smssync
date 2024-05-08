@@ -1,5 +1,8 @@
 package com.example.dtclnh.data.repository
 
+import android.content.ContentResolver
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import com.example.dtclnh.core.IOResults
 import com.example.dtclnh.core.performSafeNetworkApiCall
@@ -10,16 +13,16 @@ import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
 import com.example.dtclnh.domain.model.SmsModel
 import com.example.dtclnh.domain.reposiory.ISmsRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.map
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SmsRepositoryImpl @Inject constructor(
     private val database: AppDatabase,
-    private val iBackUpApi: IBackUpApi
+    private val iBackUpApi: IBackUpApi,
+    @ApplicationContext private val context: Context
 
 ) : ISmsRepository {
 
@@ -35,21 +38,56 @@ class SmsRepositoryImpl @Inject constructor(
 
     }
 
-    override suspend fun getAllSmsForBackup(): Flow<MutableList<SmsModel>> =
+    override suspend fun getAllSmsForBackup(): MutableList<SmsModel> =
         database.smsDao().loadSmsByBackupStatus(backupStatus = BackupStatus.FAIL)
 
     override suspend fun getAllSmsInDb(): Flow<MutableList<SmsModel>> =
         database.smsDao().loadAllSMSInDb()
 
+    override suspend fun getAllSmsInInbox(): MutableList<SmsModel> {
+        val contentResolver: ContentResolver = context.contentResolver
+        val smsURI: Uri = Uri.parse("content://sms/inbox")
+        val cursor = contentResolver.query(smsURI, null, null, null, null)
+        val listSms: MutableList<SmsModel> = mutableListOf()
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                do {
+
+
+                    val id: String = cursor.getString(cursor.getColumnIndexOrThrow("_id"))
+                    val address: String =
+                        cursor.getString(cursor.getColumnIndexOrThrow("address"))
+                    val body: String = cursor.getString(cursor.getColumnIndexOrThrow("body"))
+                    val date: Long = cursor.getLong(cursor.getColumnIndexOrThrow("date"))
+                    val read: String = cursor.getString(cursor.getColumnIndexOrThrow("read"))
+                    val sms: SmsModel = SmsModel(
+                        smsId = id,
+                        sender = address,
+                        content = body,
+                        receivedAt = date.toString(),
+                        status = read,
+                        backupStatus = BackupStatus.FAIL
+                    )
+
+                    listSms.add(sms)
+
+
+                } while (cursor.moveToNext())
+            }
+            cursor.close()
+
+        }
+        return listSms
+    }
+
     override suspend fun deleteNonExistingEntities(
         receivedAtsInbox: List<String>,
     ) {
-        database.smsDao().loadSmsByBackupStatus(backupStatus = BackupStatus.SUCCESS).collect { i ->
-            val idsInDb = i.map { it.receivedAt }
-            val idsToDelete = idsInDb.filterNot { receivedAtsInbox.contains(it) }
-            if (idsToDelete.isNotEmpty()) {
-                database.smsDao().deleteNonExistingEntities(idsToDelete)
-            }
+        val i = database.smsDao().loadSmsByBackupStatus(backupStatus = BackupStatus.SUCCESS)
+        val idsInDb = i.map { it.receivedAt }
+        val idsToDelete = idsInDb.filterNot { receivedAtsInbox.contains(it) }
+        if (idsToDelete.isNotEmpty()) {
+            database.smsDao().deleteNonExistingEntities(idsToDelete)
         }
 
     }
