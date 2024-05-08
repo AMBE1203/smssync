@@ -197,7 +197,7 @@ class SyncService : Service() {
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("Sync Service")
             .setContentText("Syncing messages...")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_launcher_background)
             .setContentIntent(pendingIntent)
             .build()
     }

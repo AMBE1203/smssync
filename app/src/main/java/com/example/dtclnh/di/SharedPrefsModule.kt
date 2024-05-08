@@ -17,6 +17,6 @@ class SharedPrefsModule {
     @Singleton
     @Provides
     fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences =
-        PreferenceManager.getDefaultSharedPreferences(context)
+        context.getSharedPreferences("SharedPreferences", Context.MODE_PRIVATE)
 
 }

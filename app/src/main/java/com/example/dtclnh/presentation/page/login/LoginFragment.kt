@@ -4,10 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -21,12 +18,10 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
-import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.LiveData
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.preference.PreferenceManager
 import androidx.viewbinding.ViewBinding
-import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.example.dtclnh.R
 import com.example.dtclnh.core.Constants
@@ -34,25 +29,24 @@ import com.example.dtclnh.core.Constants.ACTION_WORK_FAIL
 import com.example.dtclnh.core.Constants.ACTION_WORK_RUNNING
 import com.example.dtclnh.core.Constants.ACTION_WORK_SUCCESS
 import com.example.dtclnh.core.Constants.WORK_MANAGER_ID
-import com.example.dtclnh.core.Constants.WORK_MANAGER_TAG
 import com.example.dtclnh.core.Errors
 import com.example.dtclnh.databinding.FragmentLoginBinding
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsModel
-import com.example.dtclnh.domain.model.SyncStatus
 import com.example.dtclnh.presentation.base.ext.observe
 import com.example.dtclnh.presentation.base.view.BaseFragment
 import com.example.dtclnh.presentation.broadcast.SyncService
+import com.example.dtclnh.presentation.view.BottomSheetDismissListener
+import com.example.dtclnh.presentation.view.BottomSheetFragment
 import com.example.dtclnh.util.showToast
-import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import retrofit2.HttpException
-import java.util.concurrent.ExecutionException
 import java.util.regex.Pattern
+import javax.inject.Inject
 
 
 @AndroidEntryPoint
-class LoginFragment : BaseFragment() {
+class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
     private lateinit var viewBinding: FragmentLoginBinding
 
@@ -110,32 +104,19 @@ class LoginFragment : BaseFragment() {
     @SuppressLint("SuspiciousIndentation")
     @RequiresApi(Build.VERSION_CODES.P)
     override fun initView() {
-
-        setUpUI(viewBinding.cslLogin)
-
         loginViewModel.saveClientId(Constants.CLIENT_ID)
-        loginViewModel.getClientId()?.let {
-            viewBinding.editClientId.setText(it)
-        }
-        loginViewModel.getApiUrl()?.let {
-            viewBinding.editApiUrl.setText(it)
-        }
 
-        loginViewModel.getApiKey()?.let {
-            viewBinding.editApiKey.setText(it)
-        }
 
 
         loginViewModel.initData()
 
-        viewBinding.switchOnOff.isEnabled =
-            loginViewModel.getClientId()?.isNotEmpty() == true
-                    && loginViewModel.getApiUrl()?.isNotEmpty() == true
-                    && loginViewModel.getApiKey()?.isNotEmpty() == true
+//        viewBinding.swOnOff.isEnabled =
+//            loginViewModel.getClientId()?.isNotEmpty() == true
+//                    && loginViewModel.getApiUrl()?.isNotEmpty() == true
+//                    && loginViewModel.getApiKey()?.isNotEmpty() == true
 
 
-
-        viewBinding.switchOnOff.setOnCheckedChangeListener { _, isChecked ->
+        viewBinding.swOnOff.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 if (ContextCompat.checkSelfPermission(
                         requireContext(),
@@ -145,17 +126,27 @@ class LoginFragment : BaseFragment() {
                         Manifest.permission.READ_SMS
                     ) == PackageManager.PERMISSION_GRANTED
                 ) {
-                    if (isLink(loginViewModel.getApiUrl() ?: "")) {
+                    if (isLink(loginViewModel.getApiUrl() ?: "") && loginViewModel.getApiKey()
+                            ?.isNotEmpty() == true && loginViewModel.getClientId()
+                            ?.isNotEmpty() == true
+                    ) {
                         loginViewModel.countNumberSmsForBackUp()
                         val serviceIntent = Intent(requireContext(), SyncService::class.java)
                         requireContext().startService(serviceIntent)
                     } else {
+
+                        var error = R.string.api_url_incorrect
+                        if (loginViewModel.getApiKey()?.isNotEmpty() == false) {
+                            error = R.string.api_key_incorrect
+                        } else if (loginViewModel.getClientId()?.isNotEmpty() == false) {
+                            error = R.string.api_client_incorrect
+                        }
                         Toast.makeText(
                             requireContext(),
-                            getString(R.string.api_url_incorrect),
+                            getString(error),
                             Toast.LENGTH_LONG
                         ).show()
-                        viewBinding.switchOnOff.isChecked = false
+                        viewBinding.swOnOff.isChecked = false
                     }
                 } else {
                     requestForegroundPermissionLauncher.launch(
@@ -181,7 +172,7 @@ class LoginFragment : BaseFragment() {
 
         }
 
-        viewBinding.switchOnOff.isChecked =
+        viewBinding.swOnOff.isChecked =
             isServiceRunning(requireContext(), SyncService::class.java)
 
         if (ContextCompat.checkSelfPermission(
@@ -199,19 +190,6 @@ class LoginFragment : BaseFragment() {
         }
 
 
-
-        viewBinding.editApiKey.addTextChangedListener {
-            loginViewModel.setApiKey(it.toString().trim())
-        }
-
-        viewBinding.editApiUrl.addTextChangedListener {
-            loginViewModel.setApiUrl(it.toString().trim())
-        }
-        viewBinding.editClientId.addTextChangedListener {
-            loginViewModel.setClientId(it.toString().trim())
-        }
-
-
         val filter = IntentFilter(ACTION_WORK_SUCCESS)
         LocalBroadcastManager.getInstance(requireContext().applicationContext)
             .registerReceiver(receiver, filter)
@@ -223,8 +201,22 @@ class LoginFragment : BaseFragment() {
         LocalBroadcastManager.getInstance(requireContext().applicationContext)
             .registerReceiver(receiver, filterFail)
 
+        viewBinding.cardSetting.setOnClickListener {
+            showBottomSheet()
+
+        }
+
 
     }
+
+    private fun showBottomSheet() {
+        val bottomSheetFragment = BottomSheetFragment()
+        bottomSheetFragment.setBottomSheetDismissListener(this)
+
+        bottomSheetFragment.show(requireActivity().supportFragmentManager, bottomSheetFragment.tag)
+
+    }
+
 
     private fun isLink(inputString: String): Boolean {
         val pattern = Pattern.compile("^https?://\\S+")
@@ -254,43 +246,9 @@ class LoginFragment : BaseFragment() {
     }
 
 
-
     override fun onDestroyView() {
         super.onDestroyView()
         LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver)
-    }
-
-
-    private fun hideSoftKeyboard(activity: Activity) {
-        val inputMethodManager = activity.getSystemService(
-            Activity.INPUT_METHOD_SERVICE
-        ) as InputMethodManager
-        if (inputMethodManager.isAcceptingText) {
-            inputMethodManager.hideSoftInputFromWindow(
-                activity.currentFocus!!.windowToken,
-                0
-            )
-        }
-    }
-
-    private fun setUpUI(view: View) {
-
-        if (view !is EditText) {
-            view.setOnTouchListener { v, event ->
-                hideSoftKeyboard(requireActivity())
-                loginViewModel.saveApiKey(null)
-                loginViewModel.saveApiUrl(null)
-                loginViewModel.saveClientId(null)
-                false
-            }
-        }
-
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) {
-                val innerView = view.getChildAt(i)
-                setUpUI(innerView)
-            }
-        }
     }
 
 
@@ -301,15 +259,10 @@ class LoginFragment : BaseFragment() {
 
     private fun onNewStateSms(state: LoginViewState<MutableList<SmsModel>>) {
         if (state.numberSmsNotBackUp != null) {
-            viewBinding.tvCount.text = "${state.numberSmsNotBackUp}"
+            viewBinding.tvTotal.text = "${state.numberSmsNotBackUp}"
         } else {
-            viewBinding.tvCount.text = "0"
+            viewBinding.tvTotal.text = "0"
         }
-
-        viewBinding.switchOnOff.isEnabled =
-            state.apiKey?.isNotEmpty() == true
-                    && state.clientId?.isNotEmpty() == true
-                    && state.apiUrl?.isNotEmpty() == true
 
     }
 
@@ -331,5 +284,11 @@ class LoginFragment : BaseFragment() {
         }
 
 
+    }
+
+    override fun onBottomSheetDismissed(clientItd: String, apiKey: String, apiUrl: String) {
+        loginViewModel.saveApiKey(apiKey)
+        loginViewModel.saveApiUrl(apiUrl)
+        loginViewModel.saveClientId(clientItd)
     }
 }

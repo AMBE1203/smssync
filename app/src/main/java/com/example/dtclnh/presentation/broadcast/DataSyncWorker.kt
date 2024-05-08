@@ -57,23 +57,19 @@ class DataSyncWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
 
         return try {
-
-
             val newEndpoint = sharedPreferences.getString(API_URL_KEY, "")
-                ?: "http://125.212.238.157:8460/api/v1/sms/new/batch"
             val authorization =
-                sharedPreferences.getString(API_KEY_KEY, "") ?: "Basic c21zc3luYzpzbXNzeW5jQDIwMjQ="
+                sharedPreferences.getString(API_KEY_KEY, "")  ?: ""
             val clientId =
                 sharedPreferences.getString(CLIENT_ID_KEY, "") ?: CLIENT_ID
-            Log.e("AMBE1203", "newEndpoint $newEndpoint")
-            Log.e("AMBE1203", "authorization $authorization")
-            endpointInterceptor.setNewEndpoint(newEndpoint)
+            newEndpoint?.let {
+                endpointInterceptor.setNewEndpoint(it)
+            }
             val headers = mapOf(
                 "Authorization" to authorization,
                 "Content-Type" to "application/json"
             )
             headerInterceptor.setHeaders(headers)
-
             fetchAllSmsForBackUpUseCase.execute().collect { smsInbox ->
                 if (smsInbox.isNotEmpty()) {
 
@@ -112,7 +108,6 @@ class DataSyncWorker @AssistedInject constructor(
                                             LocalBroadcastManager.getInstance(applicationContext)
                                                 .sendBroadcast(intent)
                                         } else if (r.result != null) {
-                                            Log.e("AMBE1203", "OnSuccess ${r.result}")
                                             val status =
                                                 (r.result as BaseResponse<List<SmsModel>>).status
                                             if (status == 200) {
@@ -123,11 +118,6 @@ class DataSyncWorker @AssistedInject constructor(
                                                 LocalBroadcastManager.getInstance(applicationContext)
                                                     .sendBroadcast(intent)
 
-                                                fetchAllSmsForBackUpUseCase.execute().collect {
-                                                    it.forEach { g ->
-                                                        Log.e("AMBE1203", "${g.receivedAt} ${g.backupStatus} ${g.sender}")
-                                                    }
-                                                }
                                             } else {
                                                 val intent = Intent(ACTION_WORK_FAIL)
                                                 intent.putExtra(
@@ -158,8 +148,6 @@ class DataSyncWorker @AssistedInject constructor(
                 }
 
             }
-
-
 
             Result.success()
         } catch (e: Exception) {
