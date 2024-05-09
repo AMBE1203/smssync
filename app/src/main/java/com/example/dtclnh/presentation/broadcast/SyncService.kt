@@ -38,7 +38,7 @@ class SyncService : Service() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (isNetworkConnected()) {
                 // Nếu có kết nối internet, bắt đầu đồng bộ tin nhắn
-                syncInboxMessages()
+//                syncInboxMessages()
             }
         }
     }
@@ -50,40 +50,46 @@ class SyncService : Service() {
             // Gửi tin nhắn lên server
             if (intent?.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
 
-                val bundle = intent.extras
-                bundle?.let {
-                    val pdus = bundle.get("pdus") as Array<*>
-                    val messages = arrayOfNulls<SmsMessage>(pdus.size)
-                    for (i in messages.indices) {
-                        messages[i] = SmsMessage.createFromPdu(pdus[i] as ByteArray)
-                    }
-                    for (message in messages) {
-                        val senderNumber = message?.originatingAddress
-                        val messageBody = message?.messageBody
-                        // Xử lý tin nhắn ở đây
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    val smsMessages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+                    for (smsMessage in smsMessages) {
+                        val messageBody = smsMessage.messageBody
+                        val senderAddress = smsMessage.displayOriginatingAddress
+                        // Khởi chạy Service Foreground để gửi tin nhắn lên server
                         Log.e("AMBE1203 onReceive", "${messageBody}")
+
+                    }
+                } else {
+                    val bundle = intent.extras
+                    bundle?.let {
+                        val pdus = it["pdus"] as Array<Any>?
+                        pdus?.let { p ->
+                            val messages = arrayOfNulls<SmsMessage>(p.size)
+
+                            for (i in messages.indices) {
+                                messages[i] = SmsMessage.createFromPdu(p[i] as ByteArray)
+                            }
+                            for (message in messages) {
+                                val senderNumber = message?.originatingAddress
+                                val messageBody = message?.messageBody
+                                // Xử lý tin nhắn ở đây
+                                Log.e("AMBE1203 onReceive", "${messageBody}")
+                            }
+
+                        }
+
                     }
                 }
-
-
-                val smsMessages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
-                for (smsMessage in smsMessages) {
-                    val messageBody = smsMessage.messageBody
-                    val senderAddress = smsMessage.displayOriginatingAddress
-                    // Khởi chạy Service Foreground để gửi tin nhắn lên server
-                    Log.e("AMBE1203 onReceive", "${messageBody}")
-
-                }
             }
 
-            val messages = context?.let { fetchInboxMessages(it) }
-
-            messages?.forEach { message ->
-
-                Log.e("AMBE1203 onReceive", "${message.toString()}")
-                // Gửi tin nhắn lên server
-                sendMessageToServer(message)
-            }
+//            val messages = context?.let { fetchInboxMessages(it) }
+//
+//            messages?.forEach { message ->
+//
+//                Log.e("AMBE1203 onReceive", "${message.toString()}")
+//                // Gửi tin nhắn lên server
+//                sendMessageToServer(message)
+//            }
         }
     }
 
@@ -165,24 +171,6 @@ class SyncService : Service() {
 
     private fun sendMessageToServer(message: String) {
 
-//        // Triển khai phương thức này để gửi tin nhắn lên server
-//        val client = OkHttpClient()
-//        val requestBody = FormBody.Builder()
-//            .add("message", message)
-//            .build()
-//        val request = Request.Builder()
-//            .url("YOUR_SERVER_URL")
-//            .post(requestBody)
-//            .build()
-//        client.newCall(request).enqueue(object : Callback {
-//            override fun onResponse(call: Call, response: Response) {
-//                // Xử lý phản hồi từ server (nếu cần)
-//            }
-//
-//            override fun onFailure(call: Call, e: IOException) {
-//                // Xử lý khi gửi tin nhắn thất bại (nếu cần)
-//            }
-//        })
     }
 
     private fun buildNotification(): Notification {
