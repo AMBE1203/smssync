@@ -3,7 +3,6 @@ package com.example.dtclnh.data.repository
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import com.example.dtclnh.core.IOResults
 import com.example.dtclnh.core.performSafeNetworkApiCall
 import com.example.dtclnh.data.source.local.AppDatabase
@@ -106,8 +105,8 @@ class SmsRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun countMessageNotBackUp(): Flow<Int> =
-        database.smsDao().countMessageNotBackUp(backupStatus = BackupStatus.FAIL)
+    override suspend fun countMessageByBackUpStatus(backupStatus: BackupStatus): Flow<Int> =
+        database.smsDao().countMessageByBackUpStatus(backupStatus = backupStatus)
 
 
     private fun messageExists(receivedAt: String, sender: String): Boolean {

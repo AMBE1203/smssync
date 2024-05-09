@@ -229,18 +229,18 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
             if (intent?.action == ACTION_WORK_SUCCESS) {
                 loginViewModel.countNumberSmsForBackUp()
                 viewBinding.mProgressBar.visibility = View.GONE
-                viewBinding.tvStatus.text = getString(R.string.sync_success)
+                viewBinding.tvTotal.text = getString(R.string.sync_success)
 
             } else if (intent?.action == ACTION_WORK_RUNNING) {
                 viewBinding.mProgressBar.visibility = View.VISIBLE
-                viewBinding.tvStatus.text = getString(R.string.sync_running)
+                viewBinding.tvTotal.text = getString(R.string.sync_running)
             } else if (intent?.action == ACTION_WORK_FAIL) {
                 viewBinding.mProgressBar.visibility = View.GONE
                 val error = intent.extras?.getString("error")
                 error?.let {
                     Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
                 }
-                viewBinding.tvStatus.text = getString(R.string.sync_fail)
+                viewBinding.tvTotal.text = getString(R.string.sync_fail)
             }
         }
     }
@@ -258,11 +258,14 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
 
     private fun onNewStateSms(state: LoginViewState<MutableList<SmsModel>>) {
-        if (state.numberSmsNotBackUp != null) {
-            viewBinding.tvTotal.text = "${state.numberSmsNotBackUp}"
-        } else {
-            viewBinding.tvTotal.text = "0"
-        }
+        viewBinding.tvFail.text = "${state.numberSmsNotBackUp ?: 0}"
+
+
+        viewBinding.tvSuccess.text = "${state.numberSmsBackUpSuccess ?: 0}"
+
+
+//        viewBinding.tvTotal.text =
+//            "${(state.numberSmsNotBackUp ?: 0) + (state.numberSmsBackUpSuccess ?: 0)}"
 
     }
 

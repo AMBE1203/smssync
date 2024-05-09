@@ -1,10 +1,8 @@
 package com.example.dtclnh.presentation.page.login
 
 import android.app.Application
-import android.content.ContentResolver
 import android.content.Context
 import android.content.SharedPreferences
-import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -14,17 +12,12 @@ import com.example.dtclnh.core.Constants.API_URL_KEY
 import com.example.dtclnh.core.Constants.CLIENT_ID_KEY
 import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.SmsModel
-import com.example.dtclnh.domain.model.SyncStatus
 import com.example.dtclnh.domain.usecase.*
 import com.example.dtclnh.presentation.base.ext.postNext
 import com.example.dtclnh.presentation.base.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.internal.wait
 import javax.inject.Inject
 
 @HiltViewModel
@@ -33,7 +26,7 @@ class LoginViewModel @Inject constructor(
     private val saveSmsUseCase: SaveSmsUseCase,
     private val application: Application,
     private val sharedPreferences: SharedPreferences,
-    private val countMessageNotBackUpUseCase: CountMessageNotBackUpUseCase,
+    private val countMessageByBackUpStatusUseCase: CountMessageByBackUpStatusUseCase,
     private val loadAllSmsInDbUseCase: LoadAllSmsInDbUseCase,
     private val loadAllSmsInInboxUseCase: LoadAllSmsInInboxUseCase,
 
@@ -89,10 +82,17 @@ class LoginViewModel @Inject constructor(
 
     fun countNumberSmsForBackUp() {
         viewModelScope.launch {
-            countMessageNotBackUpUseCase.execute().collect {
+            countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.FAIL).collect {
                 _stateLiveData.postNext { state ->
                     state.copy(
                         numberSmsNotBackUp = it
+                    )
+                }
+            }
+            countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.SUCCESS).collect {
+                _stateLiveData.postNext { state ->
+                    state.copy(
+                        numberSmsBackUpSuccess = it
                     )
                 }
             }

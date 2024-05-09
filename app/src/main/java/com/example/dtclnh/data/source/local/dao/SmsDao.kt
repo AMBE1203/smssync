@@ -19,7 +19,7 @@ interface SmsDao {
     fun getMessageCountByDateTimeAndSender(receivedAt: String, sender: String): Int
 
     @Query("SELECT COUNT(*) FROM SMS WHERE backupStatus = :backupStatus")
-    fun countMessageNotBackUp(backupStatus: BackupStatus): Flow<Int>
+    fun countMessageByBackUpStatus(backupStatus: BackupStatus): Flow<Int>
 
     @Query("SELECT * FROM SMS WHERE backupStatus = :backupStatus")
     fun loadSmsByBackupStatus(backupStatus: BackupStatus): MutableList<SmsModel>

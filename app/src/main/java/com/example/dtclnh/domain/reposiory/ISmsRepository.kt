@@ -24,7 +24,7 @@ interface ISmsRepository {
 
 
     suspend fun findAndUpdateStatus(receivedAts: List<String>)
-    suspend fun countMessageNotBackUp(): Flow<Int>
+    suspend fun countMessageByBackUpStatus(backupStatus: BackupStatus): Flow<Int>
 
 
 }
