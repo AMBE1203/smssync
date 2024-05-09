@@ -39,8 +39,9 @@
     <string name="api_url_incorrect">Api url is incorrect.</string>
     <string name="api_client_incorrect">API client cannot be empty.</string>
     <string name="api_key_incorrect">API key cannot be empty.</string>
-    <string name="sync_running">syncing</string>
-    <string name="sync_success">success</string>
-    <string name="sync_fail">fail</string>
+    <string name="sync_running">Syncing</string>
+    <string name="sync_success">Success</string>
+    <string name="sync_fail">Fail</string>
+    <string name="sync_waiting">Waiting</string>
     <string name="save">Save</string>
 </resources>
