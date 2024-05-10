@@ -27,7 +27,7 @@
     <string name="success">Success</string>
     <string name="fail">Fail</string>
     <string name="sms_successfully">Sms synchronized successfully</string>
-    <string name="sms_fail">Sms synchronized failed</string>
+    <string name="sms_fail">Sms synchronized pending</string>
     <string name="auto_back_up">Auto backup</string>
     <string name="client_id">Client-ID</string>
     <string name="api_key">API-Key</string>
