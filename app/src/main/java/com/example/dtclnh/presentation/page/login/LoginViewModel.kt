@@ -42,21 +42,6 @@ class LoginViewModel @Inject constructor(
 
     val stateLiveData: LiveData<LoginViewState<MutableList<SmsModel>>> = _stateLiveData
 
-    init {
-        viewModelScope.launch {
-
-            loadAllSmsInDbUseCase.execute().collect {
-                it.forEach { s ->
-                    if (s.backupStatus == BackupStatus.SUCCESS) {
-                        Log.e("AMBE1203", "${s.sender} ${s.content}")
-                    }
-                }
-
-            }
-        }
-
-    }
-
     fun initData() {
         viewModelScope.launch {
             _stateLiveData.postNext { state ->
@@ -70,32 +55,35 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             val listSms = loadAllSmsInInboxUseCase.execute()
             if (listSms.isNotEmpty()) {
-                saveSmsUseCase.execute(listSms)
+                saveSmsUseCase.execute(listSms, false)
             }
         }
 
     }
 
-    init {
-        countNumberSmsForBackUp()
-    }
+//    init {
+//        viewModelScope.launch {
+//            loadAllSmsInDbUseCase.execute().forEach {
+//                Log.e("AMBE1203", "${it.content}  ${it.backupStatus}")
+//            }
+//        }
+//    }
 
     fun countNumberSmsForBackUp() {
         viewModelScope.launch {
-            countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.FAIL).collect {
-                _stateLiveData.postNext { state ->
-                    state.copy(
-                        numberSmsNotBackUp = it
-                    )
-                }
+            val smsNotBackUp =
+                countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.FAIL)
+            val numberSmsBackUpSuccess =
+                countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.SUCCESS)
+
+            _stateLiveData.postNext { state ->
+                state.copy(
+                    numberSmsNotBackUp = smsNotBackUp,
+                    numberSmsBackUpSuccess = numberSmsBackUpSuccess
+
+                )
             }
-            countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.SUCCESS).collect {
-                _stateLiveData.postNext { state ->
-                    state.copy(
-                        numberSmsBackUpSuccess = it
-                    )
-                }
-            }
+
         }
     }
 

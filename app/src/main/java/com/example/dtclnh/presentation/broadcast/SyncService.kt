@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.os.Build
 import android.os.IBinder
@@ -15,23 +16,57 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.work.*
 import com.example.dtclnh.MainActivity
 import com.example.dtclnh.R
+import com.example.dtclnh.core.Constants
 import com.example.dtclnh.core.Constants.WORK_MANAGER_ID
 import com.example.dtclnh.core.Constants.WORK_MANAGER_TAG
+import com.example.dtclnh.core.getViewStateFlowForNetworkCall
+import com.example.dtclnh.di.EndpointInterceptor
+import com.example.dtclnh.di.HeaderInterceptor
+import com.example.dtclnh.domain.model.BackupStatus
+import com.example.dtclnh.domain.model.BaseResponse
+import com.example.dtclnh.domain.model.SmsDataWrapper
+import com.example.dtclnh.domain.model.SmsModel
+import com.example.dtclnh.domain.model.SmsParam
+import com.example.dtclnh.domain.usecase.BackUpUseCase
+import com.example.dtclnh.domain.usecase.FindAndUpdateStatusUseCase
+import com.example.dtclnh.domain.usecase.SaveSmsUseCase
+import com.example.dtclnh.presentation.base.ext.goAsync
+import com.example.dtclnh.presentation.base.ext.toDateTimeLong
+import com.example.dtclnh.presentation.base.ext.toDateTimeString
 import com.example.dtclnh.presentation.page.login.LoginFragment
 import com.google.common.util.concurrent.ListenableFuture
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import okhttp3.*
 import java.io.IOException
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class SyncService : Service() {
 
     private val job = Job()
     private val coroutineScope = CoroutineScope(Dispatchers.IO + job)
+
+    @Inject
+    lateinit var backUpUseCase: BackUpUseCase;
+
+    @Inject
+    lateinit var sharedPreferences: SharedPreferences
+
+    @Inject
+    lateinit var saveSmsUseCase: SaveSmsUseCase
+
+    @Inject
+    lateinit var endpointInterceptor: EndpointInterceptor
+
+    @Inject
+    lateinit var headerInterceptor: HeaderInterceptor
 
     // BroadcastReceiver để lắng nghe sự kiện thay đổi mạng
     private val networkReceiver = object : BroadcastReceiver() {
@@ -45,51 +80,103 @@ class SyncService : Service() {
 
     // BroadcastReceiver để lắng nghe tin nhắn đến thư mục inbox
     private val smsReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            // Xử lý khi nhận được tin nhắn đến thư mục inbox
-            // Gửi tin nhắn lên server
+        override fun onReceive(context: Context?, intent: Intent?) = goAsync {
             if (intent?.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                if (isNetworkConnected()) {
                     val smsMessages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
-                    for (smsMessage in smsMessages) {
-                        val messageBody = smsMessage.messageBody
-                        val senderAddress = smsMessage.displayOriginatingAddress
-                        // Khởi chạy Service Foreground để gửi tin nhắn lên server
-                        Log.e("AMBE1203 onReceive", "${messageBody}")
+                    try {
+                        val newEndpoint = sharedPreferences.getString(Constants.API_URL_KEY, "")
+                        val authorization =
+                            sharedPreferences.getString(Constants.API_KEY_KEY, "") ?: ""
+                        val clientId =
+                            sharedPreferences.getString(Constants.CLIENT_ID_KEY, "")
+                                ?: Constants.CLIENT_ID
+                        newEndpoint?.let {
+                            endpointInterceptor.setNewEndpoint(it)
+                        }
+                        val headers = mapOf(
+                            "Authorization" to authorization,
+                            "Content-Type" to "application/json"
+                        )
+                        headerInterceptor.setHeaders(headers)
 
-                    }
-                } else {
-                    val bundle = intent.extras
-                    bundle?.let {
-                        val pdus = it["pdus"] as Array<Any>?
-                        pdus?.let { p ->
-                            val messages = arrayOfNulls<SmsMessage>(p.size)
-
-                            for (i in messages.indices) {
-                                messages[i] = SmsMessage.createFromPdu(p[i] as ByteArray)
-                            }
-                            for (message in messages) {
-                                val senderNumber = message?.originatingAddress
-                                val messageBody = message?.messageBody
-                                // Xử lý tin nhắn ở đây
-                                Log.e("AMBE1203 onReceive", "${messageBody}")
-                            }
+                        val params = smsMessages.map {
+                            SmsParam(
+                                smsId = it.indexOnIcc.toString(),
+                                clientId = clientId,
+                                sender = it.displayOriginatingAddress,
+                                content = it.messageBody,
+                                receivedAt = it.timestampMillis.toDateTimeString()
+                            )
+                        }.toList()
+                        params.forEach {
+                            Log.e("AMBE1203 onReceive", "${it}")
 
                         }
+                        val smsDataWrapper = SmsDataWrapper(data = params)
+                        getViewStateFlowForNetworkCall {
+                            backUpUseCase.execute(smsDataWrapper)
+                        }.collect { r ->
 
+                            if (r.isLoading) {
+                                val intentRunning = Intent(Constants.ACTION_WORK_RUNNING)
+                                LocalBroadcastManager.getInstance(applicationContext)
+                                    .sendBroadcast(intentRunning)
+
+                            } else if (r.throwable != null) {
+                                Log.e(
+                                    "AMBE1203",
+                                    "throwable ${r.throwable.localizedMessage}"
+                                )
+                                val a = Intent(Constants.ACTION_WORK_FAIL)
+                                a.putExtra("error", r.throwable.localizedMessage)
+                                LocalBroadcastManager.getInstance(applicationContext)
+                                    .sendBroadcast(a)
+                            } else if (r.result != null) {
+                                val status =
+                                    (r.result as BaseResponse<List<SmsModel>>).status
+                                if (status == 200) {
+                                    saveSmsUseCase.execute(params.map {
+                                        SmsModel(
+                                            smsId = it.smsId,
+                                            sender = it.sender,
+                                            content = it.content,
+                                            receivedAt = it.receivedAt.toDateTimeLong().toString(),
+                                            status = "1",
+                                            backupStatus = BackupStatus.SUCCESS,
+                                            isSmsCome = 1
+                                        )
+                                    }.toMutableList(), true)
+
+                                    val x = Intent(Constants.ACTION_WORK_SUCCESS)
+                                    LocalBroadcastManager.getInstance(applicationContext)
+                                        .sendBroadcast(x)
+
+                                } else {
+                                    val y = Intent(Constants.ACTION_WORK_FAIL)
+                                    y.putExtra(
+                                        "error",
+                                        r.result.message
+                                    )
+                                    LocalBroadcastManager.getInstance(applicationContext)
+                                        .sendBroadcast(y)
+                                }
+
+                            }
+                        }
+
+                    } catch (e: Exception) {
+                        Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
+                        val z = Intent(Constants.ACTION_WORK_FAIL)
+                        z.putExtra("error", e.localizedMessage)
+                        LocalBroadcastManager.getInstance(applicationContext)
+                            .sendBroadcast(z)
                     }
                 }
+
+
             }
 
-//            val messages = context?.let { fetchInboxMessages(it) }
-//
-//            messages?.forEach { message ->
-//
-//                Log.e("AMBE1203 onReceive", "${message.toString()}")
-//                // Gửi tin nhắn lên server
-//                sendMessageToServer(message)
-//            }
         }
     }
 
@@ -106,24 +193,24 @@ class SyncService : Service() {
 
         startForeground(NOTIFICATION_ID, buildNotification())
 
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
-        val syncRequest = PeriodicWorkRequestBuilder<DataSyncWorker>(
-            repeatInterval = 15L,
-            repeatIntervalTimeUnit = TimeUnit.MINUTES
-        )
-            .setConstraints(constraints)
-            .addTag(WORK_MANAGER_TAG)
-            .build()
-
-
-        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
-            WORK_MANAGER_ID,
-            ExistingPeriodicWorkPolicy.KEEP,
-            syncRequest
-        )
+//        val constraints = Constraints.Builder()
+//            .setRequiredNetworkType(NetworkType.CONNECTED)
+//            .build()
+//
+//        val syncRequest = PeriodicWorkRequestBuilder<DataSyncWorker>(
+//            repeatInterval = 15L,
+//            repeatIntervalTimeUnit = TimeUnit.MINUTES
+//        )
+//            .setConstraints(constraints)
+//            .addTag(WORK_MANAGER_TAG)
+//            .build()
+//
+//
+//        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+//            WORK_MANAGER_ID,
+//            ExistingPeriodicWorkPolicy.KEEP,
+//            syncRequest
+//        )
     }
 
 

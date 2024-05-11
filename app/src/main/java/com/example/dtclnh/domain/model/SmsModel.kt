@@ -17,5 +17,6 @@ data class SmsModel(
     var content: String,
     var receivedAt: String,
     var status: String,
-    var backupStatus: BackupStatus
+    var backupStatus: BackupStatus,
+    var isSmsCome: Int
 )

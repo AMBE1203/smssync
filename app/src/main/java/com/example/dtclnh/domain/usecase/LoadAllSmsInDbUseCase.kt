@@ -9,6 +9,6 @@ import javax.inject.Singleton
 
 @Singleton
 class LoadAllSmsInDbUseCase @Inject constructor(private val repository: ISmsRepository) {
-    suspend fun execute(): Flow<MutableList<SmsModel>> = repository.getAllSmsInDb()
+    suspend fun execute(): MutableList<SmsModel> = repository.getAllSmsInDb()
 
 }

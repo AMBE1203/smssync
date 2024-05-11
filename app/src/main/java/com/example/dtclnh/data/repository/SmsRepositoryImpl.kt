@@ -3,6 +3,7 @@ package com.example.dtclnh.data.repository
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import com.example.dtclnh.core.IOResults
 import com.example.dtclnh.core.performSafeNetworkApiCall
 import com.example.dtclnh.data.source.local.AppDatabase
@@ -25,22 +26,30 @@ class SmsRepositoryImpl @Inject constructor(
 
 ) : ISmsRepository {
 
-    override suspend fun saveSmsToLocal(sms: MutableList<SmsModel>) {
-        sms.forEach {
-            if (!messageExists(it.receivedAt, it.sender)) {
-                database.smsDao().insert(it)
+    override suspend fun saveSmsToLocal(sms: MutableList<SmsModel>, smsCome: Boolean) {
+        if (smsCome) {
+            database.smsDao().insert(sms.first())
+        } else {
+            sms.forEach {
+
+                if (!messageExists(
+                        it.receivedAt,
+                        it.sender,
+                        it.content
+                    ) && !messageExistsBackUpSuccess(it.sender, it.content)
+                ) {
+                    database.smsDao().insert(it)
+                }
             }
         }
-        kotlin.run {
-            deleteNonExistingEntities(sms.map { it.receivedAt }.toList())
-        }
+
 
     }
 
     override suspend fun getAllSmsForBackup(): MutableList<SmsModel> =
         database.smsDao().loadSmsByBackupStatus(backupStatus = BackupStatus.FAIL)
 
-    override suspend fun getAllSmsInDb(): Flow<MutableList<SmsModel>> =
+    override suspend fun getAllSmsInDb(): MutableList<SmsModel> =
         database.smsDao().loadAllSMSInDb()
 
     override suspend fun getAllSmsInInbox(): MutableList<SmsModel> {
@@ -65,7 +74,8 @@ class SmsRepositoryImpl @Inject constructor(
                         content = body,
                         receivedAt = date.toString(),
                         status = read,
-                        backupStatus = BackupStatus.FAIL
+                        backupStatus = BackupStatus.FAIL,
+                        isSmsCome = 0
                     )
 
                     listSms.add(sms)
@@ -105,12 +115,21 @@ class SmsRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun countMessageByBackUpStatus(backupStatus: BackupStatus): Flow<Int> =
+    override suspend fun countMessageByBackUpStatus(backupStatus: BackupStatus): Int =
         database.smsDao().countMessageByBackUpStatus(backupStatus = backupStatus)
 
 
-    private fun messageExists(receivedAt: String, sender: String): Boolean {
-        val messageCount = database.smsDao().getMessageCountByDateTimeAndSender(receivedAt, sender)
+    private fun messageExists(receivedAt: String, sender: String, body: String): Boolean {
+        val messageCount =
+            database.smsDao()
+                .getMessageCountByDateTimeAndSender(receivedAt, sender, body)
+        return messageCount > 0
+    }
+
+    private fun messageExistsBackUpSuccess(sender: String, body: String): Boolean {
+        val messageCount =
+            database.smsDao()
+                .getMessageCountByContentAndSender(sender, body, BackupStatus.SUCCESS)
         return messageCount > 0
     }
 }

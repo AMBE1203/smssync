@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SMSSSYNC</string>
+    <string name="app_name">SMSSYNC</string>
     <string name="login_tool_bar">SMSS SYNC</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="main_nav_home">Home</string>

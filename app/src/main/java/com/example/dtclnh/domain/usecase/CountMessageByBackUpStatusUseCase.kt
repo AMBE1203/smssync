@@ -9,7 +9,7 @@ import javax.inject.Singleton
 
 @Singleton
 class CountMessageByBackUpStatusUseCase @Inject constructor(private val repository: ISmsRepository) {
-    suspend fun execute(backupStatus: BackupStatus): Flow<Int> =
+    suspend fun execute(backupStatus: BackupStatus): Int =
         repository.countMessageByBackUpStatus(backupStatus)
 
 }

@@ -73,16 +73,25 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
             }
         }
 
-    @RequiresApi(Build.VERSION_CODES.P)
     private val requestSmsPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissionsStatusMap ->
-            val a = permissionsStatusMap[Manifest.permission.FOREGROUND_SERVICE]
+            val a = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                permissionsStatusMap[Manifest.permission.FOREGROUND_SERVICE]
+            } else {
+                true
+            }
             val b = permissionsStatusMap[Manifest.permission.READ_SMS]
             val c = permissionsStatusMap[Manifest.permission.RECEIVE_SMS]
-            val d = permissionsStatusMap[Manifest.permission.POST_NOTIFICATIONS]
+            val d = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissionsStatusMap[Manifest.permission.POST_NOTIFICATIONS]
+            } else {
+                true
+            }
+
             if (a == true && b == true && c == true && d == true) {
 
                 loginViewModel.readAllSMS()
+                loginViewModel.countNumberSmsForBackUp()
             } else {
 //                navigateToSetting()
             }
@@ -108,9 +117,10 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
 
     @SuppressLint("SuspiciousIndentation")
-    @RequiresApi(Build.VERSION_CODES.P)
     override fun initView() {
         loginViewModel.saveClientId(Constants.CLIENT_ID)
+        loginViewModel.saveApiUrl(Constants.API_URL)
+        loginViewModel.saveApiKey(Constants.API_KEY)
 
 
 
@@ -161,15 +171,19 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                         viewBinding.swOnOff.isChecked = false
                     }
                 } else {
-                    requestForegroundPermissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.READ_SMS,
-                            Manifest.permission.FOREGROUND_SERVICE,
-                            Manifest.permission.RECEIVE_SMS,
-                            Manifest.permission.POST_NOTIFICATIONS,
+                    var per = arrayOf(
+                        Manifest.permission.READ_SMS,
+                        Manifest.permission.RECEIVE_SMS,
 
-                            )
-                    )
+                        )
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        per += Manifest.permission.FOREGROUND_SERVICE
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        per += Manifest.permission.POST_NOTIFICATIONS;
+                    }
+
+                    requestForegroundPermissionLauncher.launch(per)
                 }
             } else {
                 try {
@@ -190,34 +204,56 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
         viewBinding.swOnOff.isChecked =
             isServiceRunning(requireContext(), SyncService::class.java)
 
-        if (ContextCompat.checkSelfPermission(
+        val a = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ContextCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.FOREGROUND_SERVICE
-            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.READ_SMS
-            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.RECEIVE_SMS
-            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        val b = ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.READ_SMS
+        ) == PackageManager.PERMISSION_GRANTED
+        val c = ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.RECEIVE_SMS
+        ) == PackageManager.PERMISSION_GRANTED
+        val d = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-        ) {
+        } else {
+            true
+        }
 
-            Log.e("ABE1203 ", "aaaa")
+        Log.e("ABE1203 ", "a= $a b=$b c=$c d=$d")
+
+
+        if (a && b && c && d) {
 
             loginViewModel.readAllSMS()
+            loginViewModel.countNumberSmsForBackUp()
+
 
         } else {
-            requestSmsPermissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.READ_SMS,
-                    Manifest.permission.FOREGROUND_SERVICE,
-                    Manifest.permission.RECEIVE_SMS,
-                    Manifest.permission.POST_NOTIFICATIONS
+
+            var per = arrayOf(
+                Manifest.permission.READ_SMS,
+                Manifest.permission.RECEIVE_SMS,
+
                 )
-            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                per += Manifest.permission.FOREGROUND_SERVICE
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                per += Manifest.permission.POST_NOTIFICATIONS;
+            }
+
+            requestSmsPermissionLauncher.launch(per)
+
 
         }
 

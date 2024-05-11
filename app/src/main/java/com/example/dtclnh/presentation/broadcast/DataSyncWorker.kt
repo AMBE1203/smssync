@@ -61,7 +61,7 @@ class DataSyncWorker @AssistedInject constructor(
             val listSms = loadAllSmsInInboxUseCase.execute()
 
             if (listSms.isNotEmpty()) {
-                saveSmsUseCase.execute(listSms)
+                saveSmsUseCase.execute(listSms, false)
                 val newEndpoint = sharedPreferences.getString(API_URL_KEY, "")
                 val authorization =
                     sharedPreferences.getString(API_KEY_KEY, "") ?: ""

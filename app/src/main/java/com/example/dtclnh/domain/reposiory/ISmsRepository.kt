@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.Flow
 
 
 interface ISmsRepository {
-    suspend fun saveSmsToLocal(sms: MutableList<SmsModel>)
+    suspend fun saveSmsToLocal(sms: MutableList<SmsModel>, smsCome: Boolean)
 
     suspend fun getAllSmsForBackup(): MutableList<SmsModel>
 
-    suspend fun getAllSmsInDb(): Flow<MutableList<SmsModel>>
+    suspend fun getAllSmsInDb(): MutableList<SmsModel>
     suspend fun getAllSmsInInbox(): MutableList<SmsModel>
     suspend fun deleteNonExistingEntities(
         receivedAtsInbox: List<String>,
@@ -24,7 +24,7 @@ interface ISmsRepository {
 
 
     suspend fun findAndUpdateStatus(receivedAts: List<String>)
-    suspend fun countMessageByBackUpStatus(backupStatus: BackupStatus): Flow<Int>
+    suspend fun countMessageByBackUpStatus(backupStatus: BackupStatus): Int
 
 
 }

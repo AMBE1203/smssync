@@ -15,17 +15,28 @@ interface SmsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(sms: SmsModel): Long
 
-    @Query("SELECT COUNT(*) FROM SMS WHERE receivedAt = :receivedAt AND sender = :sender")
-    fun getMessageCountByDateTimeAndSender(receivedAt: String, sender: String): Int
+    @Query("SELECT COUNT(*) FROM SMS WHERE receivedAt = :receivedAt AND sender = :sender AND content = :body")
+    fun getMessageCountByDateTimeAndSender(
+        receivedAt: String,
+        sender: String,
+        body: String,
+    ): Int
+
+    @Query("SELECT COUNT(*) FROM SMS WHERE backupStatus = :backupStatus AND sender = :sender AND content = :body")
+    fun getMessageCountByContentAndSender(
+        sender: String,
+        body: String,
+        backupStatus: BackupStatus
+    ): Int
 
     @Query("SELECT COUNT(*) FROM SMS WHERE backupStatus = :backupStatus")
-    fun countMessageByBackUpStatus(backupStatus: BackupStatus): Flow<Int>
+    fun countMessageByBackUpStatus(backupStatus: BackupStatus): Int
 
     @Query("SELECT * FROM SMS WHERE backupStatus = :backupStatus")
     fun loadSmsByBackupStatus(backupStatus: BackupStatus): MutableList<SmsModel>
 
     @Query("SELECT * FROM SMS")
-    fun loadAllSMSInDb(): Flow<MutableList<SmsModel>>
+    fun loadAllSMSInDb(): MutableList<SmsModel>
 
     @Delete
     suspend fun delete(smsModel: SmsModel)
