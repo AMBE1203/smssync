@@ -19,6 +19,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
 import androidx.viewbinding.ViewBinding
@@ -40,6 +41,9 @@ import com.example.dtclnh.presentation.view.BottomSheetDismissListener
 import com.example.dtclnh.presentation.view.BottomSheetFragment
 import com.example.dtclnh.util.showToast
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.util.regex.Pattern
 import javax.inject.Inject
@@ -65,7 +69,10 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
     private val requestForegroundPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissionsStatusMap ->
             if (!permissionsStatusMap.containsValue(false)) {
-                loginViewModel.countNumberSmsForBackUp()
+                lifecycleScope.launch {
+                    loginViewModel.countNumberSmsForBackUp()
+
+                }
                 val serviceIntent = Intent(requireContext(), SyncService::class.java)
                 requireContext().startService(serviceIntent)
             } else {
@@ -90,8 +97,13 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
             if (a == true && b == true && c == true && d == true) {
 
-                loginViewModel.readAllSMS()
-                loginViewModel.countNumberSmsForBackUp()
+                lifecycleScope.launch {
+                    async(Dispatchers.IO) {
+                        loginViewModel.readAllSMS()
+                    }.await()
+                    loginViewModel.countNumberSmsForBackUp()
+                }
+
             } else {
 //                navigateToSetting()
             }
@@ -152,7 +164,15 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                             ?.isNotEmpty() == true && loginViewModel.getClientId()
                             ?.isNotEmpty() == true
                     ) {
-                        loginViewModel.countNumberSmsForBackUp()
+                        WorkManager.getInstance(requireActivity().applicationContext)
+                            .cancelUniqueWork(WORK_MANAGER_ID)
+                        WorkManager.getInstance(requireActivity().applicationContext)
+                            .cancelAllWork()
+
+
+                        lifecycleScope.launch {
+                            loginViewModel.countNumberSmsForBackUp()
+                        }
                         val serviceIntent = Intent(requireContext(), SyncService::class.java)
                         requireContext().startService(serviceIntent)
                     } else {
@@ -233,9 +253,12 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
 
         if (a && b && c && d) {
-
-            loginViewModel.readAllSMS()
-            loginViewModel.countNumberSmsForBackUp()
+            lifecycleScope.launch {
+                async(Dispatchers.IO) {
+                    loginViewModel.readAllSMS()
+                }.await()
+                loginViewModel.countNumberSmsForBackUp()
+            }
 
 
         } else {
@@ -295,7 +318,9 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == ACTION_WORK_SUCCESS) {
-                loginViewModel.countNumberSmsForBackUp()
+                lifecycleScope.launch {
+                    loginViewModel.countNumberSmsForBackUp()
+                }
                 viewBinding.mProgressBar.visibility = View.GONE
                 viewBinding.tvTotal.text = getString(R.string.sync_success)
 

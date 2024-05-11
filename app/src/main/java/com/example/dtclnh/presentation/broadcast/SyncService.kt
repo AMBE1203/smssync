@@ -80,137 +80,140 @@ class SyncService : Service() {
 
     // BroadcastReceiver để lắng nghe tin nhắn đến thư mục inbox
     private val smsReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) = goAsync {
+        override fun onReceive(p0: Context?, intent: Intent?) {
             if (intent?.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
                 if (isNetworkConnected()) {
-                    val smsMessages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
-                    try {
-                        val newEndpoint = sharedPreferences.getString(Constants.API_URL_KEY, "")
-                        val authorization =
-                            sharedPreferences.getString(Constants.API_KEY_KEY, "") ?: ""
-                        val clientId =
-                            sharedPreferences.getString(Constants.CLIENT_ID_KEY, "")
-                                ?: Constants.CLIENT_ID
-                        newEndpoint?.let {
-                            endpointInterceptor.setNewEndpoint(it)
-                        }
-                        val headers = mapOf(
-                            "Authorization" to authorization,
-                            "Content-Type" to "application/json"
-                        )
-                        headerInterceptor.setHeaders(headers)
+                    coroutineScope.launch {
+                        try {
+                            val smsMessages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
 
-                        val params = smsMessages.map {
-                            SmsParam(
-                                smsId = it.indexOnIcc.toString(),
-                                clientId = clientId,
-                                sender = it.displayOriginatingAddress,
-                                content = it.messageBody,
-                                receivedAt = it.timestampMillis.toDateTimeString()
+                            val newEndpoint = sharedPreferences.getString(Constants.API_URL_KEY, "")
+                            val authorization =
+                                sharedPreferences.getString(Constants.API_KEY_KEY, "") ?: ""
+                            val clientId =
+                                sharedPreferences.getString(Constants.CLIENT_ID_KEY, "")
+                                    ?: Constants.CLIENT_ID
+                            newEndpoint?.let {
+                                endpointInterceptor.setNewEndpoint(it)
+                            }
+                            val headers = mapOf(
+                                "Authorization" to authorization,
+                                "Content-Type" to "application/json"
                             )
-                        }.toList()
-                        params.forEach {
-                            Log.e("AMBE1203 onReceive", "${it}")
+                            headerInterceptor.setHeaders(headers)
 
-                        }
-                        val smsDataWrapper = SmsDataWrapper(data = params)
-                        getViewStateFlowForNetworkCall {
-                            backUpUseCase.execute(smsDataWrapper)
-                        }.collect { r ->
-
-                            if (r.isLoading) {
-                                val intentRunning = Intent(Constants.ACTION_WORK_RUNNING)
-                                LocalBroadcastManager.getInstance(applicationContext)
-                                    .sendBroadcast(intentRunning)
-
-                            } else if (r.throwable != null) {
-                                Log.e(
-                                    "AMBE1203",
-                                    "throwable ${r.throwable.localizedMessage}"
+                            val params = smsMessages.map {
+                                SmsParam(
+                                    smsId = it.indexOnIcc.toString(),
+                                    clientId = clientId,
+                                    sender = it.displayOriginatingAddress,
+                                    content = it.messageBody,
+                                    receivedAt = it.timestampMillis.toDateTimeString()
                                 )
-                                val a = Intent(Constants.ACTION_WORK_FAIL)
-                                a.putExtra("error", r.throwable.localizedMessage)
-                                LocalBroadcastManager.getInstance(applicationContext)
-                                    .sendBroadcast(a)
-                            } else if (r.result != null) {
-                                val status =
-                                    (r.result as BaseResponse<List<SmsModel>>).status
-                                if (status == 200) {
-                                    saveSmsUseCase.execute(params.map {
-                                        SmsModel(
-                                            smsId = it.smsId,
-                                            sender = it.sender,
-                                            content = it.content,
-                                            receivedAt = it.receivedAt.toDateTimeLong().toString(),
-                                            status = "1",
-                                            backupStatus = BackupStatus.SUCCESS,
-                                            isSmsCome = 1
-                                        )
-                                    }.toMutableList(), true)
-
-                                    val x = Intent(Constants.ACTION_WORK_SUCCESS)
-                                    LocalBroadcastManager.getInstance(applicationContext)
-                                        .sendBroadcast(x)
-
-                                } else {
-                                    val y = Intent(Constants.ACTION_WORK_FAIL)
-                                    y.putExtra(
-                                        "error",
-                                        r.result.message
-                                    )
-                                    LocalBroadcastManager.getInstance(applicationContext)
-                                        .sendBroadcast(y)
-                                }
+                            }.toList()
+                            params.forEach {
+                                Log.e("AMBE1203 onReceive", "${it}")
 
                             }
-                        }
+                            val smsDataWrapper = SmsDataWrapper(data = params)
+                            getViewStateFlowForNetworkCall {
+                                backUpUseCase.execute(smsDataWrapper)
+                            }.collect { r ->
 
-                    } catch (e: Exception) {
-                        Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
-                        val z = Intent(Constants.ACTION_WORK_FAIL)
-                        z.putExtra("error", e.localizedMessage)
-                        LocalBroadcastManager.getInstance(applicationContext)
-                            .sendBroadcast(z)
+                                if (r.isLoading) {
+                                    val intentRunning = Intent(Constants.ACTION_WORK_RUNNING)
+                                    LocalBroadcastManager.getInstance(applicationContext)
+                                        .sendBroadcast(intentRunning)
+
+                                } else if (r.throwable != null) {
+                                    Log.e(
+                                        "AMBE1203",
+                                        "throwable ${r.throwable.localizedMessage}"
+                                    )
+                                    val a = Intent(Constants.ACTION_WORK_FAIL)
+                                    a.putExtra("error", r.throwable.localizedMessage)
+                                    LocalBroadcastManager.getInstance(applicationContext)
+                                        .sendBroadcast(a)
+                                } else if (r.result != null) {
+                                    val status =
+                                        (r.result as BaseResponse<List<SmsModel>>).status
+                                    if (status == 200) {
+                                        saveSmsUseCase.execute(params.map {
+                                            SmsModel(
+                                                smsId = it.smsId,
+                                                sender = it.sender,
+                                                content = it.content,
+                                                receivedAt = it.receivedAt.toDateTimeLong()
+                                                    .toString(),
+                                                status = "1",
+                                                backupStatus = BackupStatus.SUCCESS,
+                                                isSmsCome = 1
+                                            )
+                                        }.toMutableList(), true)
+
+                                        val x = Intent(Constants.ACTION_WORK_SUCCESS)
+                                        LocalBroadcastManager.getInstance(applicationContext)
+                                            .sendBroadcast(x)
+
+                                    } else {
+                                        val y = Intent(Constants.ACTION_WORK_FAIL)
+                                        y.putExtra(
+                                            "error",
+                                            r.result.message
+                                        )
+                                        LocalBroadcastManager.getInstance(applicationContext)
+                                            .sendBroadcast(y)
+                                    }
+
+                                }
+                            }
+
+                        } catch (e: Exception) {
+                            Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
+                            val z = Intent(Constants.ACTION_WORK_FAIL)
+                            z.putExtra("error", e.localizedMessage)
+                            LocalBroadcastManager.getInstance(applicationContext)
+                                .sendBroadcast(z)
+                        }
                     }
+
                 }
 
 
             }
-
         }
+
     }
 
     override fun onCreate() {
         super.onCreate()
 
-        // Đăng ký BroadcastReceiver để lắng nghe sự kiện thay đổi mạng
         val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         registerReceiver(networkReceiver, filter)
 
-        // Đăng ký BroadcastReceiver để lắng nghe tin nhắn đến
         val smsFilter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
         registerReceiver(smsReceiver, smsFilter)
 
         startForeground(NOTIFICATION_ID, buildNotification())
 
-//        val constraints = Constraints.Builder()
-//            .setRequiredNetworkType(NetworkType.CONNECTED)
-//            .build()
-//
-//        val syncRequest = PeriodicWorkRequestBuilder<DataSyncWorker>(
-//            repeatInterval = 15L,
-//            repeatIntervalTimeUnit = TimeUnit.MINUTES
-//        )
-//            .setConstraints(constraints)
-//            .addTag(WORK_MANAGER_TAG)
-//            .build()
-//
-//
-//        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
-//            WORK_MANAGER_ID,
-//            ExistingPeriodicWorkPolicy.KEEP,
-//            syncRequest
-//        )
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val syncRequest = PeriodicWorkRequestBuilder<DataSyncWorker>(
+            repeatInterval = 15L,
+            repeatIntervalTimeUnit = TimeUnit.MINUTES
+        )
+            .setConstraints(constraints)
+            .addTag(WORK_MANAGER_TAG)
+            .build()
+
+
+        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+            WORK_MANAGER_ID,
+            ExistingPeriodicWorkPolicy.KEEP,
+            syncRequest
+        )
     }
 
 

@@ -29,6 +29,7 @@ import com.example.dtclnh.presentation.page.login.LoginViewModel
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -76,79 +77,154 @@ class DataSyncWorker @AssistedInject constructor(
                 )
                 headerInterceptor.setHeaders(headers)
                 val smsInbox = fetchAllSmsForBackUpUseCase.execute()
-                Log.e("AMBE1203 size smsInbox", "${smsInbox.size}")
+                Log.e("AMBE1203", "smsInbox SIZE: ${smsInbox.size}")
 
                 if (smsInbox.isNotEmpty()) {
 
-                    withContext(Dispatchers.Default) {
-                        val jobs = mutableListOf<Job>()
-                        smsInbox.chunked(CHUNK_SIZE) { chunk ->
-                            val job = launch {
-                                try {
 
-                                    val params = chunk.map {
-                                        SmsParam(
-                                            smsId = it.smsId,
-                                            clientId = clientId,
-                                            sender = it.sender,
-                                            content = it.content,
-                                            receivedAt = it.receivedAt.toLong().toDateTimeString()
-                                        )
-                                    }.toList()
-                                    val smsDataWrapper = SmsDataWrapper(data = params)
-                                    getViewStateFlowForNetworkCall {
-                                        backUpUseCase.execute(smsDataWrapper)
-                                    }.collect { r ->
+                    val chunkedSms = smsInbox.chunked(CHUNK_SIZE)
 
-                                        if (r.isLoading) {
-                                            val intentRunning = Intent(ACTION_WORK_RUNNING)
-                                            LocalBroadcastManager.getInstance(applicationContext)
-                                                .sendBroadcast(intentRunning)
+                    val jobs = mutableListOf<Job>()
 
-                                        } else if (r.throwable != null) {
-                                            Log.e(
-                                                "AMBE1203",
-                                                "throwable ${r.throwable.localizedMessage}"
-                                            )
-                                            val intent = Intent(ACTION_WORK_FAIL)
-                                            intent.putExtra("error", r.throwable.localizedMessage)
+                    chunkedSms.forEach { chunk ->
+                        Log.e("AMBE1203", "chunk SIZE: ${chunk.size}")
+
+                        val job = GlobalScope.launch {
+                            try {
+                                val params = chunk.map {
+                                    SmsParam(
+                                        smsId = it.smsId,
+                                        clientId = clientId,
+                                        sender = it.sender,
+                                        content = it.content,
+                                        receivedAt = it.receivedAt.toLong().toDateTimeString()
+                                    )
+                                }
+
+                                val smsDataWrapper = SmsDataWrapper(data = params)
+                                getViewStateFlowForNetworkCall {
+                                    backUpUseCase.execute(smsDataWrapper)
+                                }.collect { r ->
+                                    if (r.isLoading) {
+                                        val intentRunning = Intent(ACTION_WORK_RUNNING)
+                                        LocalBroadcastManager.getInstance(applicationContext)
+                                            .sendBroadcast(intentRunning)
+                                    } else if (r.throwable != null) {
+                                        Log.e("AMBE1203", "throwable ${r.throwable.localizedMessage}")
+                                        val intent = Intent(ACTION_WORK_FAIL)
+                                        intent.putExtra("error", r.throwable.localizedMessage)
+                                        LocalBroadcastManager.getInstance(applicationContext)
+                                            .sendBroadcast(intent)
+                                    } else if (r.result != null) {
+                                        val status =
+                                            (r.result as BaseResponse<List<SmsModel>>).status
+                                        if (status == 200) {
+                                            findAndUpdateStatusUseCase.execute(chunk.map { it.receivedAt }
+                                                .toList())
+                                            Log.e("AMBE1203", "success chunk SIZE: ${chunk.size}")
+
+                                            val intent = Intent(ACTION_WORK_SUCCESS)
                                             LocalBroadcastManager.getInstance(applicationContext)
                                                 .sendBroadcast(intent)
-                                        } else if (r.result != null) {
-                                            val status =
-                                                (r.result as BaseResponse<List<SmsModel>>).status
-                                            if (status == 200) {
-                                                findAndUpdateStatusUseCase.execute(chunk.map { it.receivedAt }
-                                                    .toList())
-
-                                                val intent = Intent(ACTION_WORK_SUCCESS)
-                                                LocalBroadcastManager.getInstance(applicationContext)
-                                                    .sendBroadcast(intent)
-
-                                            } else {
-                                                val intent = Intent(ACTION_WORK_FAIL)
-                                                intent.putExtra(
-                                                    "error",
-                                                    r.result.message
-                                                )
-                                                LocalBroadcastManager.getInstance(applicationContext)
-                                                    .sendBroadcast(intent)
-                                            }
-
+                                        } else {
+                                            val intent = Intent(ACTION_WORK_FAIL)
+                                            intent.putExtra(
+                                                "error",
+                                                r.result.message
+                                            )
+                                            LocalBroadcastManager.getInstance(applicationContext)
+                                                .sendBroadcast(intent)
                                         }
                                     }
-                                } catch (e: Exception) {
-                                    Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
-                                    val intent = Intent(ACTION_WORK_FAIL)
-                                    intent.putExtra("error", e.localizedMessage)
-                                    LocalBroadcastManager.getInstance(applicationContext)
-                                        .sendBroadcast(intent)
                                 }
+                            } catch (e: Exception) {
+                                Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
+                                val intent = Intent(ACTION_WORK_FAIL)
+                                intent.putExtra("error", e.localizedMessage)
+                                LocalBroadcastManager.getInstance(applicationContext)
+                                    .sendBroadcast(intent)
                             }
-                            jobs.add(job)
                         }
-                        jobs.joinAll()
+                        jobs.add(job)
                     }
+
+                    jobs.forEach { it.join() }
+
+
+
+//                    withContext(Dispatchers.Default) {
+//                        val jobs = mutableListOf<Job>()
+//                        smsInbox.chunked(CHUNK_SIZE) { chunk ->
+//                            val job = launch {
+//                                try {
+//                                    Log.e("AMBE1203", "chunk SIZE: ${chunk.size}")
+//
+//                                    val params = chunk.map {
+//                                        SmsParam(
+//                                            smsId = it.smsId,
+//                                            clientId = clientId,
+//                                            sender = it.sender,
+//                                            content = it.content,
+//                                            receivedAt = it.receivedAt.toLong().toDateTimeString()
+//                                        )
+//                                    }.toList()
+//                                    Log.e("AMBE1203", "params SIZE: ${params.size}")
+//
+//                                    val smsDataWrapper = SmsDataWrapper(data = params)
+//                                    getViewStateFlowForNetworkCall {
+//                                        backUpUseCase.execute(smsDataWrapper)
+//                                    }.collect { r ->
+//
+//                                        if (r.isLoading) {
+//                                            val intentRunning = Intent(ACTION_WORK_RUNNING)
+//                                            LocalBroadcastManager.getInstance(applicationContext)
+//                                                .sendBroadcast(intentRunning)
+//
+//                                        } else if (r.throwable != null) {
+//                                            Log.e(
+//                                                "AMBE1203",
+//                                                "throwable ${r.throwable.localizedMessage}"
+//                                            )
+//                                            val intent = Intent(ACTION_WORK_FAIL)
+//                                            intent.putExtra("error", r.throwable.localizedMessage)
+//                                            LocalBroadcastManager.getInstance(applicationContext)
+//                                                .sendBroadcast(intent)
+//                                        } else if (r.result != null) {
+//                                            val status =
+//                                                (r.result as BaseResponse<List<SmsModel>>).status
+//                                            if (status == 200) {
+//                                                findAndUpdateStatusUseCase.execute(chunk.map { it.receivedAt }
+//                                                    .toList())
+//                                                Log.e("AMBE1203", "success chunk SIZE: ${chunk.size}")
+//
+//                                                val intent = Intent(ACTION_WORK_SUCCESS)
+//                                                LocalBroadcastManager.getInstance(applicationContext)
+//                                                    .sendBroadcast(intent)
+//
+//                                            } else {
+//                                                val intent = Intent(ACTION_WORK_FAIL)
+//                                                intent.putExtra(
+//                                                    "error",
+//                                                    r.result.message
+//                                                )
+//                                                LocalBroadcastManager.getInstance(applicationContext)
+//                                                    .sendBroadcast(intent)
+//                                            }
+//
+//                                        }
+//                                    }
+//                                } catch (e: Exception) {
+//                                    Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
+//                                    val intent = Intent(ACTION_WORK_FAIL)
+//                                    intent.putExtra("error", e.localizedMessage)
+//                                    LocalBroadcastManager.getInstance(applicationContext)
+//                                        .sendBroadcast(intent)
+//                                }
+//                            }
+//                            jobs.add(job)
+//                        }
+//                        jobs.joinAll()
+//                    }
 
                 }
 

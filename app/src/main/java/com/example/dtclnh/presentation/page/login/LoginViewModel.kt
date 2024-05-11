@@ -51,12 +51,10 @@ class LoginViewModel @Inject constructor(
     }
 
 
-    fun readAllSMS() {
-        viewModelScope.launch {
-            val listSms = loadAllSmsInInboxUseCase.execute()
-            if (listSms.isNotEmpty()) {
-                saveSmsUseCase.execute(listSms, false)
-            }
+    suspend fun readAllSMS() {
+        val listSms = loadAllSmsInInboxUseCase.execute()
+        if (listSms.isNotEmpty()) {
+            saveSmsUseCase.execute(listSms, false)
         }
 
     }
@@ -69,21 +67,21 @@ class LoginViewModel @Inject constructor(
 //        }
 //    }
 
-    fun countNumberSmsForBackUp() {
-        viewModelScope.launch {
-            val smsNotBackUp =
-                countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.FAIL)
-            val numberSmsBackUpSuccess =
-                countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.SUCCESS)
+    suspend fun countNumberSmsForBackUp() {
+        val smsNotBackUp =
+            countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.FAIL)
 
-            _stateLiveData.postNext { state ->
-                state.copy(
-                    numberSmsNotBackUp = smsNotBackUp,
-                    numberSmsBackUpSuccess = numberSmsBackUpSuccess
+        Log.e("AMBE1203 not", "$smsNotBackUp")
+        val numberSmsBackUpSuccess =
+            countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.SUCCESS)
+        Log.e("AMBE1203 ok", "$numberSmsBackUpSuccess")
 
-                )
-            }
+        _stateLiveData.postNext { state ->
+            state.copy(
+                numberSmsNotBackUp = smsNotBackUp,
+                numberSmsBackUpSuccess = numberSmsBackUpSuccess
 
+            )
         }
     }
 
