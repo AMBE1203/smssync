@@ -164,10 +164,23 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                             ?.isNotEmpty() == true && loginViewModel.getClientId()
                             ?.isNotEmpty() == true
                     ) {
-                        WorkManager.getInstance(requireActivity().applicationContext)
-                            .cancelUniqueWork(WORK_MANAGER_ID)
-                        WorkManager.getInstance(requireActivity().applicationContext)
-                            .cancelAllWork()
+
+                        try {
+                            WorkManager.getInstance(requireActivity().applicationContext)
+                                .cancelUniqueWork(WORK_MANAGER_ID)
+                            WorkManager.getInstance(requireActivity().applicationContext)
+                                .cancelAllWork()
+
+                            if (isServiceRunning(requireContext(), SyncService::class.java)) {
+
+                                val serviceIntent =
+                                    Intent(requireContext(), SyncService::class.java)
+                                requireContext().stopService(serviceIntent)
+                            }
+
+                        } catch (_: Exception) {
+
+                        }
 
 
                         lifecycleScope.launch {
