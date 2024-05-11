@@ -26,9 +26,9 @@ class MainApplication : Application(), Configuration.Provider {
         lateinit var INSTANCE: MainApplication
     }
 
-    override fun getWorkManagerConfiguration(): Configuration {
-        return Configuration.Builder()
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
-            .build();
-    }
+            .build()
+
 }

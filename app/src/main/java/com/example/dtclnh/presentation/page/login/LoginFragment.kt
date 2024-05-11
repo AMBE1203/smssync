@@ -74,8 +74,8 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
         }
 
     private val requestSmsPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissionsStatusMap ->
+            if (!permissionsStatusMap.containsValue(false)) {
                 loginViewModel.readAllSMS()
             } else {
                 navigateToSetting()
@@ -124,6 +124,9 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                     ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
                         requireContext(),
                         Manifest.permission.READ_SMS
+                    ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.RECEIVE_SMS
                     ) == PackageManager.PERMISSION_GRANTED
                 ) {
                     if (isLink(loginViewModel.getApiUrl() ?: "") && loginViewModel.getApiKey()
@@ -152,7 +155,8 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                     requestForegroundPermissionLauncher.launch(
                         arrayOf(
                             Manifest.permission.READ_SMS,
-                            Manifest.permission.FOREGROUND_SERVICE
+                            Manifest.permission.FOREGROUND_SERVICE,
+                            Manifest.permission.RECEIVE_SMS,
                         )
                     )
                 }
@@ -177,14 +181,24 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
         if (ContextCompat.checkSelfPermission(
                 requireContext(),
+                Manifest.permission.FOREGROUND_SERVICE
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                requireContext(),
                 Manifest.permission.READ_SMS
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.RECEIVE_SMS
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             loginViewModel.readAllSMS()
 
         } else {
             requestSmsPermissionLauncher.launch(
-                Manifest.permission.READ_SMS
+                arrayOf(
+                    Manifest.permission.READ_SMS,
+                    Manifest.permission.FOREGROUND_SERVICE,
+                    Manifest.permission.RECEIVE_SMS,
+                )
             )
 
         }
