@@ -186,6 +186,7 @@ class SyncService : Service() {
             .setContentTitle("Sync Service")
             .setContentText("Syncing messages...")
             .setSmallIcon(R.drawable.ic_launcher_background)
+            .setOngoing(true)
             .setContentIntent(pendingIntent)
             .build()
     }

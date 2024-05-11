@@ -73,12 +73,18 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
             }
         }
 
+    @RequiresApi(Build.VERSION_CODES.P)
     private val requestSmsPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissionsStatusMap ->
-            if (!permissionsStatusMap.containsValue(false)) {
+            val a = permissionsStatusMap[Manifest.permission.FOREGROUND_SERVICE]
+            val b = permissionsStatusMap[Manifest.permission.READ_SMS]
+            val c = permissionsStatusMap[Manifest.permission.RECEIVE_SMS]
+            val d = permissionsStatusMap[Manifest.permission.POST_NOTIFICATIONS]
+            if (a == true && b == true && c == true && d == true) {
+
                 loginViewModel.readAllSMS()
             } else {
-                navigateToSetting()
+//                navigateToSetting()
             }
         }
 
@@ -127,6 +133,9 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                     ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
                         requireContext(),
                         Manifest.permission.RECEIVE_SMS
+                    ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.RECEIVE_SMS
                     ) == PackageManager.PERMISSION_GRANTED
                 ) {
                     if (isLink(loginViewModel.getApiUrl() ?: "") && loginViewModel.getApiKey()
@@ -157,7 +166,9 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                             Manifest.permission.READ_SMS,
                             Manifest.permission.FOREGROUND_SERVICE,
                             Manifest.permission.RECEIVE_SMS,
-                        )
+                            Manifest.permission.POST_NOTIFICATIONS,
+
+                            )
                     )
                 }
             } else {
@@ -188,8 +199,14 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
             ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.RECEIVE_SMS
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         ) {
+
+            Log.e("ABE1203 ", "aaaa")
+
             loginViewModel.readAllSMS()
 
         } else {
@@ -198,6 +215,7 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                     Manifest.permission.READ_SMS,
                     Manifest.permission.FOREGROUND_SERVICE,
                     Manifest.permission.RECEIVE_SMS,
+                    Manifest.permission.POST_NOTIFICATIONS
                 )
             )
 
