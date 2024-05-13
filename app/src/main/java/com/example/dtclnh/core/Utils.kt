@@ -33,7 +33,7 @@ suspend fun <T : Any> performSafeNetworkApiCall(
         emit(
             IOResults.OnFailed(
                 IOException(
-                    "API call failed with error - ${
+                    "Error - ${
                         response.errorBody()
                             ?.string() ?: messageInCaseOfError
                     }"
@@ -42,7 +42,7 @@ suspend fun <T : Any> performSafeNetworkApiCall(
         )
         return@flow
     }.catch { e ->
-        emit(IOResults.OnFailed(IOException("Exception during network API call: ${e.message}")))
+        emit(IOResults.OnFailed(IOException("Exception: ${e.message}")))
         return@catch
     }.retryWhen { cause, attempt ->
         if (!allowRetries || attempt > numberOfRetries || cause !is IOException) return@retryWhen false

@@ -130,9 +130,24 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
     @SuppressLint("SuspiciousIndentation")
     override fun initView() {
-        loginViewModel.saveClientId(Constants.CLIENT_ID)
-        loginViewModel.saveApiUrl(Constants.API_URL)
-        loginViewModel.saveApiKey(Constants.API_KEY)
+
+        loginViewModel.getClientId().let {
+            if (it?.isEmpty() == true) {
+                loginViewModel.saveClientId(Constants.CLIENT_ID)
+            }
+        }
+
+        loginViewModel.getApiKey().let {
+            if (it?.isEmpty() == true) {
+                loginViewModel.saveApiKey(Constants.API_KEY)
+            }
+        }
+
+        loginViewModel.getApiUrl().let {
+            if (it?.isEmpty() == true) {
+                loginViewModel.saveApiUrl(Constants.API_URL)
+            }
+        }
 
 
 
@@ -262,9 +277,6 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
             true
         }
 
-        Log.e("ABE1203 ", "a= $a b=$b c=$c d=$d")
-
-
         if (a && b && c && d) {
             lifecycleScope.launch {
                 async(Dispatchers.IO) {
@@ -345,6 +357,7 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                 val error = intent.extras?.getString("error")
                 error?.let {
                     Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                    viewBinding.tvErr.text = it
                 }
                 viewBinding.tvTotal.text = getString(R.string.sync_fail)
             }
