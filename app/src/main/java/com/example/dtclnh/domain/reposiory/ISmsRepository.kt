@@ -2,6 +2,7 @@ package com.example.dtclnh.domain.reposiory
 
 
 import com.example.dtclnh.core.IOResults
+import com.example.dtclnh.domain.model.BackupResponse
 import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
@@ -20,7 +21,7 @@ interface ISmsRepository {
         receivedAtsInbox: List<String>,
     )
 
-    suspend fun backup(sms: SmsDataWrapper): Flow<IOResults<BaseResponse<List<SmsModel>>>>
+    suspend fun backup(sms: SmsDataWrapper): Flow<IOResults<BackupResponse>>
 
 
     suspend fun findAndUpdateStatus(receivedAts: List<String>)

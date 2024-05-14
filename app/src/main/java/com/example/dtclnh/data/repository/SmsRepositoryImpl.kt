@@ -8,6 +8,7 @@ import com.example.dtclnh.core.IOResults
 import com.example.dtclnh.core.performSafeNetworkApiCall
 import com.example.dtclnh.data.source.local.AppDatabase
 import com.example.dtclnh.data.source.remote.IBackUpApi
+import com.example.dtclnh.domain.model.BackupResponse
 import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
@@ -103,7 +104,7 @@ class SmsRepositoryImpl @Inject constructor(
 
     override suspend fun backup(
         sms: SmsDataWrapper,
-    ): Flow<IOResults<BaseResponse<List<SmsModel>>>> = performSafeNetworkApiCall {
+    ): Flow<IOResults<BackupResponse>> = performSafeNetworkApiCall {
         iBackUpApi.backUp(sms)
     }
 

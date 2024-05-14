@@ -110,14 +110,20 @@ class DataSyncWorker @AssistedInject constructor(
                                         LocalBroadcastManager.getInstance(applicationContext)
                                             .sendBroadcast(intentRunning)
                                     } else if (r.throwable != null) {
-                                        Log.e("AMBE1203", "throwable ${r.throwable.localizedMessage}")
+                                        Log.e(
+                                            "AMBE1203",
+                                            "throwable ${r.throwable.localizedMessage}"
+                                        )
                                         val intent = Intent(ACTION_WORK_FAIL)
-                                        intent.putExtra("error", r.throwable.localizedMessage)
+                                        intent.putExtra(
+                                            "error",
+                                            "${r.throwable.localizedMessage} $smsDataWrapper"
+                                        )
                                         LocalBroadcastManager.getInstance(applicationContext)
                                             .sendBroadcast(intent)
                                     } else if (r.result != null) {
                                         val status =
-                                            (r.result as BaseResponse<List<SmsModel>>).status
+                                            (r.result as BackupResponse).status
                                         if (status == 200) {
                                             findAndUpdateStatusUseCase.execute(chunk.map { it.receivedAt }
                                                 .toList())
@@ -149,7 +155,6 @@ class DataSyncWorker @AssistedInject constructor(
                     }
 
                     jobs.forEach { it.join() }
-
 
 
 //                    withContext(Dispatchers.Default) {

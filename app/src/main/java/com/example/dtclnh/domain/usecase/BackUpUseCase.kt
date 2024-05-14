@@ -1,6 +1,7 @@
 package com.example.dtclnh.domain.usecase
 
 import com.example.dtclnh.core.IOResults
+import com.example.dtclnh.domain.model.BackupResponse
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
 import com.example.dtclnh.domain.model.SmsModel
@@ -12,8 +13,8 @@ import javax.inject.Singleton
 
 @Singleton
 class BackUpUseCase @Inject constructor(private val repository: ISmsRepository) :
-    IUseCase<SmsDataWrapper, BaseResponse<List<SmsModel>>> {
-    override suspend fun execute(input: SmsDataWrapper): Flow<IOResults<BaseResponse<List<SmsModel>>>> =
+    IUseCase<SmsDataWrapper, BackupResponse> {
+    override suspend fun execute(input: SmsDataWrapper): Flow<IOResults<BackupResponse>> =
         repository.backup(sms = input)
 
 

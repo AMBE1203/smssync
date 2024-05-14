@@ -1,5 +1,6 @@
 package com.example.dtclnh.data.source.remote
 
+import com.example.dtclnh.domain.model.BackupResponse
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
 import com.example.dtclnh.domain.model.SmsModel
@@ -12,5 +13,5 @@ import javax.inject.Singleton
 @Singleton
 interface IBackUpApi {
     @POST("/post")
-    suspend fun backUp(@Body smsDataWrapper: SmsDataWrapper): Response<BaseResponse<List<SmsModel>>>
+    suspend fun backUp(@Body smsDataWrapper: SmsDataWrapper): Response<BackupResponse>
 }

@@ -356,7 +356,6 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                 viewBinding.mProgressBar.visibility = View.GONE
                 val error = intent.extras?.getString("error")
                 error?.let {
-                    Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
                     viewBinding.tvErr.text = it
                 }
                 viewBinding.tvTotal.text = getString(R.string.sync_fail)
