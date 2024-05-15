@@ -26,6 +26,7 @@ import com.example.dtclnh.core.Constants.WORK_MANAGER_TAG
 import com.example.dtclnh.core.getViewStateFlowForNetworkCall
 import com.example.dtclnh.di.EndpointInterceptor
 import com.example.dtclnh.di.HeaderInterceptor
+import com.example.dtclnh.domain.model.BackupResponse
 import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
@@ -34,6 +35,7 @@ import com.example.dtclnh.domain.model.SmsParam
 import com.example.dtclnh.domain.usecase.BackUpUseCase
 import com.example.dtclnh.domain.usecase.FindAndUpdateStatusUseCase
 import com.example.dtclnh.domain.usecase.SaveSmsUseCase
+import com.example.dtclnh.presentation.base.ext.generateUniqueID
 import com.example.dtclnh.presentation.base.ext.goAsync
 import com.example.dtclnh.presentation.base.ext.toDateTimeLong
 import com.example.dtclnh.presentation.base.ext.toDateTimeString
@@ -104,7 +106,10 @@ class SyncService : Service() {
 
                             val params = smsMessages.map {
                                 SmsParam(
-                                    smsId = it.indexOnIcc.toString(),
+                                    smsId = generateUniqueID(
+                                        it.timestampMillis,
+                                        it.displayOriginatingAddress
+                                    ),
                                     clientId = clientId,
                                     sender = it.displayOriginatingAddress,
                                     content = it.messageBody,
@@ -136,11 +141,14 @@ class SyncService : Service() {
                                         .sendBroadcast(a)
                                 } else if (r.result != null) {
                                     val status =
-                                        (r.result as BaseResponse<List<SmsModel>>).status
+                                        (r.result as BackupResponse).status
                                     if (status == 200) {
                                         saveSmsUseCase.execute(params.map {
                                             SmsModel(
-                                                smsId = it.smsId,
+                                                smsId = generateUniqueID(
+                                                    it.receivedAt.toDateTimeLong(),
+                                                    it.sender
+                                                ),
                                                 sender = it.sender,
                                                 content = it.content,
                                                 receivedAt = it.receivedAt.toDateTimeLong()

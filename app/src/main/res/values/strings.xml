@@ -36,6 +36,8 @@
     <string name="on_off">On/Off backup:</string>
     <string name="count">Count:</string>
     <string name="status">Status</string>
+    <string name="time">Time until next sync</string>
+    <string name="next_time">Next run started</string>
     <string name="api_url_incorrect">Api url is incorrect.</string>
     <string name="api_client_incorrect">API client cannot be empty.</string>
     <string name="api_key_incorrect">API key cannot be empty.</string>

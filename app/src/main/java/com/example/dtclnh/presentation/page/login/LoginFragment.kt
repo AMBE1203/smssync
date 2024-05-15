@@ -8,20 +8,15 @@ import android.content.*
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.CountDownTimer
 import android.provider.Settings
-import android.util.Log
 import android.view.View
-import android.view.ViewGroup
-import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import androidx.preference.PreferenceManager
 import androidx.viewbinding.ViewBinding
 import androidx.work.WorkManager
 import com.example.dtclnh.R
@@ -34,6 +29,8 @@ import com.example.dtclnh.core.Errors
 import com.example.dtclnh.databinding.FragmentLoginBinding
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsModel
+import com.example.dtclnh.presentation.base.ext.convertSecondsToMMSS
+import com.example.dtclnh.presentation.base.ext.isLink
 import com.example.dtclnh.presentation.base.ext.observe
 import com.example.dtclnh.presentation.base.view.BaseFragment
 import com.example.dtclnh.presentation.broadcast.SyncService
@@ -45,8 +42,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
-import java.util.regex.Pattern
-import javax.inject.Inject
+import java.util.concurrent.TimeUnit
 
 
 @AndroidEntryPoint
@@ -105,7 +101,6 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                 }
 
             } else {
-//                navigateToSetting()
             }
         }
 
@@ -153,10 +148,6 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
         loginViewModel.initData()
 
-//        viewBinding.swOnOff.isEnabled =
-//            loginViewModel.getClientId()?.isNotEmpty() == true
-//                    && loginViewModel.getApiUrl()?.isNotEmpty() == true
-//                    && loginViewModel.getApiKey()?.isNotEmpty() == true
 
 
         viewBinding.swOnOff.setOnCheckedChangeListener { _, isChecked ->
@@ -334,11 +325,7 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
     }
 
 
-    private fun isLink(inputString: String): Boolean {
-        val pattern = Pattern.compile("^https?://\\S+")
-        val matcher = pattern.matcher(inputString)
-        return matcher.matches()
-    }
+
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -352,6 +339,8 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
             } else if (intent?.action == ACTION_WORK_RUNNING) {
                 viewBinding.mProgressBar.visibility = View.VISIBLE
                 viewBinding.tvTotal.text = getString(R.string.sync_running)
+                countDownTimer.cancel()
+                countDownTimer.start()
             } else if (intent?.action == ACTION_WORK_FAIL) {
                 viewBinding.mProgressBar.visibility = View.GONE
                 val error = intent.extras?.getString("error")
@@ -360,6 +349,18 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                 }
                 viewBinding.tvTotal.text = getString(R.string.sync_fail)
             }
+        }
+    }
+
+    val countDownTimer = object : CountDownTimer(TimeUnit.MINUTES.toMillis(15), 1000) {
+        override fun onTick(millisUntilFinished: Long) {
+            val remainingTime = TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished)
+            val timeInHHMM = convertSecondsToMMSS(remainingTime)
+            viewBinding.tvTime.text = timeInHHMM
+        }
+
+        override fun onFinish() {
+            viewBinding.tvTime.text = getString(R.string.next_time)
         }
     }
 
@@ -381,9 +382,6 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
         viewBinding.tvSuccess.text = "${state.numberSmsBackUpSuccess ?: 0}"
 
-
-//        viewBinding.tvTotal.text =
-//            "${(state.numberSmsNotBackUp ?: 0) + (state.numberSmsBackUpSuccess ?: 0)}"
 
     }
 
