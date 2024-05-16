@@ -29,6 +29,7 @@ import com.example.dtclnh.presentation.base.ext.toDateTimeString
 import com.example.dtclnh.presentation.page.login.LoginViewModel
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
@@ -56,6 +57,7 @@ class DataSyncWorker @AssistedInject constructor(
     CoroutineWorker(context, params) {
 
 
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
     override suspend fun doWork(): Result {
 
         return try {
@@ -85,12 +87,12 @@ class DataSyncWorker @AssistedInject constructor(
 
                     val chunkedSms = smsInbox.chunked(CHUNK_SIZE)
 
-                    val jobs = mutableListOf<Job>()
+//                    val jobs = mutableListOf<Job>()
 
-                    chunkedSms.forEach { chunk ->
+                    for (chunk in chunkedSms) {
                         Log.e("AMBE1203", "chunk SIZE: ${chunk.size}")
 
-                        val job = GlobalScope.launch {
+                        val job = coroutineScope.launch {
                             try {
                                 val params = chunk.map {
                                     SmsParam(
@@ -101,7 +103,9 @@ class DataSyncWorker @AssistedInject constructor(
                                         receivedAt = it.receivedAt.toLong().toDateTimeString()
                                     )
                                 }
-
+                                val intentRunning = Intent(ACTION_WORK_RUNNING)
+                                LocalBroadcastManager.getInstance(applicationContext)
+                                    .sendBroadcast(intentRunning)
                                 val smsDataWrapper = SmsDataWrapper(data = params)
                                 getViewStateFlowForNetworkCall {
                                     backUpUseCase.execute(smsDataWrapper)
@@ -144,6 +148,9 @@ class DataSyncWorker @AssistedInject constructor(
                                         }
                                     }
                                 }
+
+// Print time before delay
+
                             } catch (e: Exception) {
                                 Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
                                 val intent = Intent(ACTION_WORK_FAIL)
@@ -151,86 +158,14 @@ class DataSyncWorker @AssistedInject constructor(
                                 LocalBroadcastManager.getInstance(applicationContext)
                                     .sendBroadcast(intent)
                             }
+
                         }
-                        jobs.add(job)
+                        delay(1000L)
+
+//                        jobs.add(job)
                     }
 
-                    jobs.forEach { it.join() }
-
-
-//                    withContext(Dispatchers.Default) {
-//                        val jobs = mutableListOf<Job>()
-//                        smsInbox.chunked(CHUNK_SIZE) { chunk ->
-//                            val job = launch {
-//                                try {
-//                                    Log.e("AMBE1203", "chunk SIZE: ${chunk.size}")
-//
-//                                    val params = chunk.map {
-//                                        SmsParam(
-//                                            smsId = it.smsId,
-//                                            clientId = clientId,
-//                                            sender = it.sender,
-//                                            content = it.content,
-//                                            receivedAt = it.receivedAt.toLong().toDateTimeString()
-//                                        )
-//                                    }.toList()
-//                                    Log.e("AMBE1203", "params SIZE: ${params.size}")
-//
-//                                    val smsDataWrapper = SmsDataWrapper(data = params)
-//                                    getViewStateFlowForNetworkCall {
-//                                        backUpUseCase.execute(smsDataWrapper)
-//                                    }.collect { r ->
-//
-//                                        if (r.isLoading) {
-//                                            val intentRunning = Intent(ACTION_WORK_RUNNING)
-//                                            LocalBroadcastManager.getInstance(applicationContext)
-//                                                .sendBroadcast(intentRunning)
-//
-//                                        } else if (r.throwable != null) {
-//                                            Log.e(
-//                                                "AMBE1203",
-//                                                "throwable ${r.throwable.localizedMessage}"
-//                                            )
-//                                            val intent = Intent(ACTION_WORK_FAIL)
-//                                            intent.putExtra("error", r.throwable.localizedMessage)
-//                                            LocalBroadcastManager.getInstance(applicationContext)
-//                                                .sendBroadcast(intent)
-//                                        } else if (r.result != null) {
-//                                            val status =
-//                                                (r.result as BaseResponse<List<SmsModel>>).status
-//                                            if (status == 200) {
-//                                                findAndUpdateStatusUseCase.execute(chunk.map { it.receivedAt }
-//                                                    .toList())
-//                                                Log.e("AMBE1203", "success chunk SIZE: ${chunk.size}")
-//
-//                                                val intent = Intent(ACTION_WORK_SUCCESS)
-//                                                LocalBroadcastManager.getInstance(applicationContext)
-//                                                    .sendBroadcast(intent)
-//
-//                                            } else {
-//                                                val intent = Intent(ACTION_WORK_FAIL)
-//                                                intent.putExtra(
-//                                                    "error",
-//                                                    r.result.message
-//                                                )
-//                                                LocalBroadcastManager.getInstance(applicationContext)
-//                                                    .sendBroadcast(intent)
-//                                            }
-//
-//                                        }
-//                                    }
-//                                } catch (e: Exception) {
-//                                    Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
-//                                    val intent = Intent(ACTION_WORK_FAIL)
-//                                    intent.putExtra("error", e.localizedMessage)
-//                                    LocalBroadcastManager.getInstance(applicationContext)
-//                                        .sendBroadcast(intent)
-//                                }
-//                            }
-//                            jobs.add(job)
-//                        }
-//                        jobs.joinAll()
-//                    }
+//                    jobs.forEach { it.join() }
 
                 }
 
@@ -241,4 +176,6 @@ class DataSyncWorker @AssistedInject constructor(
             Result.retry()
         }
     }
+
+
 }

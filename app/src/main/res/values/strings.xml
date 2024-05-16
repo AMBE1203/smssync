@@ -39,7 +39,8 @@
     <string name="time">Time until next sync</string>
     <string name="next_time">Next run started</string>
     <string name="api_url_incorrect">Api url is incorrect.</string>
-    <string name="api_client_incorrect">API client cannot be empty.</string>
+    <string name="api_url_not_empty">Api url is cannot be empty.</string>
+    <string name="api_client_incorrect">Client Id cannot be empty.</string>
     <string name="api_key_incorrect">API key cannot be empty.</string>
     <string name="sync_running">Syncing</string>
     <string name="sync_success">Success</string>

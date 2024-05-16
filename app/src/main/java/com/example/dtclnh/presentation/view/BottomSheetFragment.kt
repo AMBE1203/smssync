@@ -8,7 +8,9 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.widget.addTextChangedListener
+import com.example.dtclnh.R
 import com.example.dtclnh.core.Constants
 import com.example.dtclnh.databinding.BottomSheetSettingBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -74,15 +76,30 @@ class BottomSheetFragment : BottomSheetDialogFragment() {
         }
 
         binding.btnSave.setOnClickListener {
-            bottomSheetDismissListener?.onBottomSheetDismissed(
-                clientItd = mClientId ?: "",
-                apiKey = mApiKey ?: "",
-                apiUrl = mApiUrl ?: ""
-            )
-            dismiss()
+
+            if (mClientId?.isNotEmpty() == true
+                && mApiKey?.isNotEmpty() == true && mApiUrl?.isNotEmpty() == true
+            ) {
+                bottomSheetDismissListener?.onBottomSheetDismissed(
+                    clientItd = mClientId ?: "",
+                    apiKey = mApiKey ?: "",
+                    apiUrl = mApiUrl ?: ""
+                )
+                dismiss()
+            } else {
+                var error = R.string.api_url_not_empty
+                if (mApiKey?.isNotEmpty() == false) {
+                    error = R.string.api_key_incorrect
+                } else if (mClientId?.isNotEmpty() == false) {
+                    error = R.string.api_client_incorrect
+                }
+                Toast.makeText(
+                    requireContext(),
+                    getString(error),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
-
-
     }
 
     override fun onDestroy() {
