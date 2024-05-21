@@ -1,19 +1,26 @@
 package com.example.dtclnh.presentation.base.ext
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import java.util.regex.Pattern
 
+@RequiresApi(Build.VERSION_CODES.N)
 fun Long.toDateTimeString(): String {
     val date = Date(this)
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
     return dateFormat.format(date)
 }
 
+@RequiresApi(Build.VERSION_CODES.N)
 fun String.toDateTimeLong(): Long {
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
+    dateFormat.timeZone = TimeZone.getTimeZone("UTC")
+
     val date = dateFormat.parse(this)
     return date?.time ?: 0
 }
