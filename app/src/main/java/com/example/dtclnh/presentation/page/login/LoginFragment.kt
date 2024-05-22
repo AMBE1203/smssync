@@ -333,13 +333,13 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                 lifecycleScope.launch {
                     loginViewModel.countNumberSmsForBackUp()
                 }
-                viewBinding.tvErr.text = ""
+//                viewBinding.tvErr.text = ""
                 viewBinding.mProgressBar.visibility = View.GONE
                 viewBinding.tvTotal.text = getString(R.string.sync_success)
 
             } else if (intent?.action == ACTION_WORK_RUNNING) {
                 viewBinding.mProgressBar.visibility = View.VISIBLE
-                viewBinding.tvErr.text = ""
+//                viewBinding.tvErr.text = ""
                 viewBinding.tvTotal.text = getString(R.string.sync_running)
                 countDownTimer.cancel()
                 countDownTimer.start()
