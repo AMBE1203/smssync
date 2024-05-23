@@ -14,6 +14,7 @@ import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
 import com.example.dtclnh.domain.model.SmsModel
 import com.example.dtclnh.domain.reposiory.ISmsRepository
+import com.example.dtclnh.presentation.base.ext.generateUniqueID
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -34,10 +35,8 @@ class SmsRepositoryImpl @Inject constructor(
             sms.forEach {
 
                 if (!messageExists(
-                        it.receivedAt,
-                        it.sender,
-                        it.content
-                    ) && !messageExistsBackUpSuccess(it.sender, it.content)
+                        it.smsId
+                    ) && !messageExistsBackUpSuccess(it.smsId)
                 ) {
                     database.smsDao().insert(it)
                 }
@@ -70,7 +69,7 @@ class SmsRepositoryImpl @Inject constructor(
                     val date: Long = cursor.getLong(cursor.getColumnIndexOrThrow("date"))
                     val read: String = cursor.getString(cursor.getColumnIndexOrThrow("read"))
                     val sms: SmsModel = SmsModel(
-                        smsId = id,
+                        smsId = generateUniqueID(date, address, id),
                         sender = address,
                         content = body,
                         receivedAt = date.toString(),
@@ -120,17 +119,17 @@ class SmsRepositoryImpl @Inject constructor(
         database.smsDao().countMessageByBackUpStatus(backupStatus = backupStatus)
 
 
-    private fun messageExists(receivedAt: String, sender: String, body: String): Boolean {
+    private fun messageExists(smsId: String): Boolean {
         val messageCount =
             database.smsDao()
-                .getMessageCountByDateTimeAndSender(receivedAt, sender, body)
+                .getMessageCountByDateTimeAndSender(smsId)
         return messageCount > 0
     }
 
-    private fun messageExistsBackUpSuccess(sender: String, body: String): Boolean {
+    private fun messageExistsBackUpSuccess(smsId: String): Boolean {
         val messageCount =
             database.smsDao()
-                .getMessageCountByContentAndSender(sender, body, BackupStatus.SUCCESS)
+                .getMessageCountByContentAndSender(smsId, BackupStatus.SUCCESS)
         return messageCount > 0
     }
 }

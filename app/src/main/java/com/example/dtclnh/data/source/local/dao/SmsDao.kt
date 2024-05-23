@@ -15,17 +15,14 @@ interface SmsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(sms: SmsModel): Long
 
-    @Query("SELECT COUNT(*) FROM SMS WHERE receivedAt = :receivedAt AND sender = :sender AND content = :body")
+    @Query("SELECT COUNT(*) FROM SMS WHERE smsId = :smsId")
     fun getMessageCountByDateTimeAndSender(
-        receivedAt: String,
-        sender: String,
-        body: String,
+        smsId: String,
     ): Int
 
-    @Query("SELECT COUNT(*) FROM SMS WHERE backupStatus = :backupStatus AND sender = :sender AND content = :body")
+    @Query("SELECT COUNT(*) FROM SMS WHERE backupStatus = :backupStatus AND smsId = :smsId ")
     fun getMessageCountByContentAndSender(
-        sender: String,
-        body: String,
+        smsId: String,
         backupStatus: BackupStatus
     ): Int
 

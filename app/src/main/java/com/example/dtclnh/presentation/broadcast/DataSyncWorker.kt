@@ -24,7 +24,6 @@ import com.example.dtclnh.di.EndpointInterceptor
 import com.example.dtclnh.di.HeaderInterceptor
 import com.example.dtclnh.domain.model.*
 import com.example.dtclnh.domain.usecase.*
-import com.example.dtclnh.presentation.base.ext.generateUniqueID
 import com.example.dtclnh.presentation.base.ext.toDateTimeString
 import com.example.dtclnh.presentation.page.login.LoginViewModel
 import dagger.assisted.Assisted
@@ -96,7 +95,7 @@ class DataSyncWorker @AssistedInject constructor(
                             try {
                                 val params = chunk.map {
                                     SmsParam(
-                                        smsId = generateUniqueID(it.receivedAt.toLong(), it.sender, it.smsId),
+                                        smsId = it.smsId,
                                         clientId = clientId,
                                         sender = it.sender,
                                         content = it.content,

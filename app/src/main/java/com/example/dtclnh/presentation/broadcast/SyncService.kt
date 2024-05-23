@@ -35,7 +35,6 @@ import com.example.dtclnh.domain.model.SmsParam
 import com.example.dtclnh.domain.usecase.BackUpUseCase
 import com.example.dtclnh.domain.usecase.FindAndUpdateStatusUseCase
 import com.example.dtclnh.domain.usecase.SaveSmsUseCase
-import com.example.dtclnh.presentation.base.ext.generateUniqueID
 import com.example.dtclnh.presentation.base.ext.goAsync
 import com.example.dtclnh.presentation.base.ext.toDateTimeLong
 import com.example.dtclnh.presentation.base.ext.toDateTimeString

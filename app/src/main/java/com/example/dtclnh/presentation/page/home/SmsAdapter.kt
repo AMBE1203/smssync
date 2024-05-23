@@ -27,7 +27,7 @@ class SmsAdapter : ListAdapter<SmsModel, SmsAdapter.SmsViewHolder>(SmsDiffCallba
     override fun onBindViewHolder(holder: SmsViewHolder, position: Int) {
         val sms = getItem(position)
         holder.senderTextView.text = "Sender: ${sms.sender}"
-        holder.idTextView.text = "Id: ${generateUniqueID(sms.receivedAt.toLong(), sms.sender, sms.smsId)}"
+        holder.idTextView.text = "Id: ${sms.smsId}"
         holder.contentTextView.text = "Content:\n ${sms.content}"
     }
 }
