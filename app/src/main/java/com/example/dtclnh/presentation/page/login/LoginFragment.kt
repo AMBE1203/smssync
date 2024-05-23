@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.navigation.findNavController
 import androidx.viewbinding.ViewBinding
 import androidx.work.WorkManager
 import com.example.dtclnh.R
@@ -125,6 +126,12 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
     @SuppressLint("SuspiciousIndentation")
     override fun initView() {
+
+        viewBinding.llFail.setOnClickListener {
+            requireActivity().findNavController(R.id.nav_host_fragment)
+                .navigate(R.id.action_loginFragment_to_homeFragment)
+
+        }
 
         loginViewModel.getClientId().let {
             if (it?.isEmpty() == true) {
@@ -323,8 +330,6 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
         bottomSheetFragment.show(requireActivity().supportFragmentManager, bottomSheetFragment.tag)
 
     }
-
-
 
 
     private val receiver = object : BroadcastReceiver() {

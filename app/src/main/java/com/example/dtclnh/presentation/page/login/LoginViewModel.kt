@@ -34,7 +34,6 @@ class LoginViewModel @Inject constructor(
     ) : BaseViewModel() {
 
 
-    private val context: Context = application.applicationContext
     private val state: LoginViewState<MutableList<SmsModel>> = LoginViewState()
 
     private val _stateLiveData: MutableLiveData<LoginViewState<MutableList<SmsModel>>> =

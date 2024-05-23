@@ -96,7 +96,7 @@ class DataSyncWorker @AssistedInject constructor(
                             try {
                                 val params = chunk.map {
                                     SmsParam(
-                                        smsId = generateUniqueID(it.receivedAt.toLong(), it.sender),
+                                        smsId = generateUniqueID(it.receivedAt.toLong(), it.sender, it.smsId),
                                         clientId = clientId,
                                         sender = it.sender,
                                         content = it.content,

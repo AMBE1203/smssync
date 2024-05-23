@@ -34,8 +34,8 @@ fun convertSecondsToMMSS(seconds: Long): String {
     return String.format("%02d:%02d", minutes, remainingSeconds)
 }
 
-fun generateUniqueID(time: Long, senderId: String): String {
-    val combinedString = "$time$senderId"
+fun generateUniqueID(time: Long, senderId: String, id: String): String {
+    val combinedString = "$time$senderId$id"
     val bytes = combinedString.toByteArray(Charsets.UTF_8)
 
     val md = MessageDigest.getInstance("SHA-256")
