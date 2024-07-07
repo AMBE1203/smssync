@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
 import android.net.ConnectivityManager
 import android.os.Build
 import android.os.IBinder
@@ -201,7 +203,17 @@ class SyncService : Service() {
 //        val smsFilter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
 //        registerReceiver(smsReceiver, smsFilter)
 
-        startForeground(NOTIFICATION_ID, buildNotification())
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } else {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification(),
+                FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+
+        }
+
 
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)

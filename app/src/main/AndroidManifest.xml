@@ -6,12 +6,15 @@
         android:name="android.hardware.telephony"
         android:required="true" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".MainApplication"
@@ -34,10 +37,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-<!--        <provider-->
-<!--            android:name="androidx.work.impl.WorkManagerInitializer"-->
-<!--            android:authorities="${applicationId}.androidx-startup"-->
-<!--            tools:node="remove"></provider>-->
+        <!--        <provider-->
+        <!--            android:name="androidx.work.impl.WorkManagerInitializer"-->
+        <!--            android:authorities="${applicationId}.androidx-startup"-->
+        <!--            tools:node="remove"></provider>-->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
@@ -51,7 +54,9 @@
 
         <service
             android:name=".presentation.broadcast.SyncService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="specialUse" />
+
 
     </application>
 
