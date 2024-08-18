@@ -62,6 +62,10 @@ class DataSyncWorker @AssistedInject constructor(
         return try {
 
             val listSms = loadAllSmsInInboxUseCase.execute()
+            val intentRunning = Intent(ACTION_WORK_RUNNING)
+            intentRunning.setPackage(applicationContext.packageName)
+            LocalBroadcastManager.getInstance(applicationContext)
+                .sendBroadcast(intentRunning)
 
             if (listSms.isNotEmpty()) {
                 saveSmsUseCase.execute(listSms, false)
@@ -80,6 +84,7 @@ class DataSyncWorker @AssistedInject constructor(
                 headerInterceptor.setHeaders(headers)
                 val smsInbox = fetchAllSmsForBackUpUseCase.execute()
                 Log.e("AMBE1203", "smsInbox SIZE: ${smsInbox.size}")
+
 
                 if (smsInbox.isNotEmpty()) {
 
@@ -102,15 +107,15 @@ class DataSyncWorker @AssistedInject constructor(
                                         receivedAt = it.receivedAt.toLong().toDateTimeString()
                                     )
                                 }
-                                val intentRunning = Intent(ACTION_WORK_RUNNING)
-                                LocalBroadcastManager.getInstance(applicationContext)
-                                    .sendBroadcast(intentRunning)
+
                                 val smsDataWrapper = SmsDataWrapper(data = params)
                                 getViewStateFlowForNetworkCall {
                                     backUpUseCase.execute(smsDataWrapper)
                                 }.collect { r ->
                                     if (r.isLoading) {
                                         val intentRunning = Intent(ACTION_WORK_RUNNING)
+                                        intentRunning.setPackage(applicationContext.packageName)
+
                                         LocalBroadcastManager.getInstance(applicationContext)
                                             .sendBroadcast(intentRunning)
                                     } else if (r.throwable != null) {
@@ -119,6 +124,8 @@ class DataSyncWorker @AssistedInject constructor(
                                             "throwable ${r.throwable.localizedMessage}"
                                         )
                                         val intent = Intent(ACTION_WORK_FAIL)
+                                        intent.setPackage(applicationContext.packageName)
+
                                         intent.putExtra(
                                             "error",
                                             "${r.throwable.localizedMessage} $smsDataWrapper"
@@ -134,10 +141,14 @@ class DataSyncWorker @AssistedInject constructor(
                                             Log.e("AMBE1203", "success chunk SIZE: ${chunk.size}")
 
                                             val intent = Intent(ACTION_WORK_SUCCESS)
+                                            intent.setPackage(applicationContext.packageName)
+
                                             LocalBroadcastManager.getInstance(applicationContext)
                                                 .sendBroadcast(intent)
                                         } else {
                                             val intent = Intent(ACTION_WORK_FAIL)
+                                            intent.setPackage(applicationContext.packageName)
+
                                             intent.putExtra(
                                                 "error",
                                                 r.result.message
@@ -153,6 +164,8 @@ class DataSyncWorker @AssistedInject constructor(
                             } catch (e: Exception) {
                                 Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
                                 val intent = Intent(ACTION_WORK_FAIL)
+                                intent.setPackage(applicationContext.packageName)
+
                                 intent.putExtra("error", e.localizedMessage)
                                 LocalBroadcastManager.getInstance(applicationContext)
                                     .sendBroadcast(intent)
@@ -166,8 +179,18 @@ class DataSyncWorker @AssistedInject constructor(
 
 //                    jobs.forEach { it.join() }
 
+                } else {
+                    val intentSuccess = Intent(ACTION_WORK_SUCCESS)
+                    intentSuccess.setPackage(applicationContext.packageName)
+                    LocalBroadcastManager.getInstance(applicationContext)
+                        .sendBroadcast(intentSuccess)
                 }
 
+            } else {
+                val intentSuccess = Intent(ACTION_WORK_SUCCESS)
+                intentSuccess.setPackage(applicationContext.packageName)
+                LocalBroadcastManager.getInstance(applicationContext)
+                    .sendBroadcast(intentSuccess)
             }
 
             Result.success()

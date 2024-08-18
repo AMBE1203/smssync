@@ -70,10 +70,8 @@ class LoginViewModel @Inject constructor(
         val smsNotBackUp =
             countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.FAIL)
 
-        Log.e("AMBE1203 not", "$smsNotBackUp")
         val numberSmsBackUpSuccess =
             countMessageByBackUpStatusUseCase.execute(backupStatus = BackupStatus.SUCCESS)
-        Log.e("AMBE1203 ok", "$numberSmsBackUpSuccess")
 
         _stateLiveData.postNext { state ->
             state.copy(
