@@ -320,6 +320,11 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
         }
 
+//        viewBinding.btnTest.setOnClickListener {
+//
+//            loginViewModel.test()
+//        }
+
 
     }
 

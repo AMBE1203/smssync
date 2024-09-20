@@ -4,6 +4,7 @@ import com.example.dtclnh.domain.model.BackupResponse
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
 import com.example.dtclnh.domain.model.SmsModel
+import com.example.dtclnh.domain.model.SmsParam
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -13,5 +14,5 @@ import javax.inject.Singleton
 @Singleton
 interface IBackUpApi {
     @POST("/post")
-    suspend fun backUp(@Body smsDataWrapper: SmsDataWrapper): Response<BackupResponse>
+    suspend fun backUp(@Body smsDataWrapper: SmsParam): Response<BackupResponse>
 }

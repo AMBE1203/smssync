@@ -30,6 +30,8 @@ suspend fun <T : Any> performSafeNetworkApiCall(
                 ?: emit(IOResults.OnFailed(IOException("API call successful but empty response body")))
             return@flow
         }
+        Log.e("AMBE1203", "2: ${response.toString()}")
+
         emit(
             IOResults.OnFailed(
                 IOException(
@@ -42,6 +44,8 @@ suspend fun <T : Any> performSafeNetworkApiCall(
         )
         return@flow
     }.catch { e ->
+        Log.e("AMBE1203", "1: ${e.toString()}")
+
         emit(IOResults.OnFailed(IOException("Exception: ${e.message}")))
         return@catch
     }.retryWhen { cause, attempt ->
@@ -56,6 +60,8 @@ suspend fun <T : Any> getViewStateFlowForNetworkCall(ioOperation: suspend () -> 
     flow {
         emit(BaseViewState(isLoading = true, result = null, throwable = null))
         ioOperation().map {
+
+            Log.e("AMBE1203", "getViewStateFlowForNetworkCall: $it")
             when (it) {
                 is IOResults.OnSuccess -> BaseViewState(
                     result = it.data,

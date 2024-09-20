@@ -101,32 +101,30 @@ class SyncService : Service() {
                                 endpointInterceptor.setNewEndpoint(it)
                             }
                             val headers = mapOf(
-                                "Authorization" to authorization,
+                                "X-RSA-TOKEN" to authorization,
                                 "Content-Type" to "application/json"
                             )
                             headerInterceptor.setHeaders(headers)
 
                             val params = smsMessages.map {
                                 SmsParam(
-                                    smsId = generateUniqueID(
-                                        it.timestampMillis,
-                                        it.displayOriginatingAddress
-                                    ),
-                                    clientId = clientId,
-                                    sender = it.displayOriginatingAddress,
-                                    content = it.messageBody,
-                                    receivedAt = it.timestampMillis.toDateTimeString()
+
+                                    phone = it.displayOriginatingAddress,
+                                    message = it.messageBody,
+                                    timeSent = it.timestampMillis.toDateTimeString()
                                 )
                             }.toList()
                             params.forEach {
                                 Log.e("AMBE1203 onReceive", "${it}")
 
                             }
-                            val smsDataWrapper = SmsDataWrapper(data = params)
                             getViewStateFlowForNetworkCall {
-                                backUpUseCase.execute(smsDataWrapper)
+                                backUpUseCase.execute(params.first())
                             }.collect { r ->
-
+                                Log.e(
+                                    "AMBE1203",
+                                    "demo ${r.toString()}"
+                                )
                                 if (r.isLoading) {
                                     val intentRunning = Intent(Constants.ACTION_WORK_RUNNING)
                                     LocalBroadcastManager.getInstance(applicationContext)
@@ -145,21 +143,6 @@ class SyncService : Service() {
                                     val status =
                                         (r.result as BackupResponse).status
                                     if (status == 200) {
-                                        saveSmsUseCase.execute(params.map {
-                                            SmsModel(
-                                                smsId = generateUniqueID(
-                                                    it.receivedAt.toDateTimeLong(),
-                                                    it.sender
-                                                ),
-                                                sender = it.sender,
-                                                content = it.content,
-                                                receivedAt = it.receivedAt.toDateTimeLong()
-                                                    .toString(),
-                                                status = "1",
-                                                backupStatus = BackupStatus.SUCCESS,
-                                                isSmsCome = 1
-                                            )
-                                        }.toMutableList(), true)
 
                                         val x = Intent(Constants.ACTION_WORK_SUCCESS)
                                         LocalBroadcastManager.getInstance(applicationContext)

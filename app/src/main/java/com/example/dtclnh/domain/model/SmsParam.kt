@@ -5,9 +5,7 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 data class SmsParam(
-    @SerializedName("smsId") val smsId: String,
-    @SerializedName("clientId") val clientId: String,
-    @SerializedName("sender") val sender: String,
-    @SerializedName("content") val content: String,
-    @SerializedName("receivedAt") val receivedAt: String
+    @SerializedName("phone") val phone: String,
+    @SerializedName("message") val message: String,
+    @SerializedName("timeSent") val timeSent: String,
 )

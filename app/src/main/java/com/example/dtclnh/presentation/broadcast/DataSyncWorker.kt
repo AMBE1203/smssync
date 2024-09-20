@@ -100,17 +100,15 @@ class DataSyncWorker @AssistedInject constructor(
                             try {
                                 val params = chunk.map {
                                     SmsParam(
-                                        smsId = it.smsId,
-                                        clientId = clientId,
-                                        sender = it.sender,
-                                        content = it.content,
-                                        receivedAt = it.receivedAt.toLong().toDateTimeString()
+
+                                        phone = it.sender,
+                                        message = it.content,
+                                        timeSent = it.receivedAt.toLong().toDateTimeString()
                                     )
                                 }
 
-                                val smsDataWrapper = SmsDataWrapper(data = params)
                                 getViewStateFlowForNetworkCall {
-                                    backUpUseCase.execute(smsDataWrapper)
+                                    backUpUseCase.execute(params.first())
                                 }.collect { r ->
                                     if (r.isLoading) {
                                         val intentRunning = Intent(ACTION_WORK_RUNNING)
@@ -128,7 +126,7 @@ class DataSyncWorker @AssistedInject constructor(
 
                                         intent.putExtra(
                                             "error",
-                                            "${r.throwable.localizedMessage} $smsDataWrapper"
+                                            "${r.throwable.localizedMessage} ${params.first()}"
                                         )
                                         LocalBroadcastManager.getInstance(applicationContext)
                                             .sendBroadcast(intent)

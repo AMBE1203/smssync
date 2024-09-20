@@ -7,6 +7,7 @@ import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
 import com.example.dtclnh.domain.model.SmsModel
+import com.example.dtclnh.domain.model.SmsParam
 import kotlinx.coroutines.flow.Flow
 
 
@@ -21,7 +22,7 @@ interface ISmsRepository {
         receivedAtsInbox: List<String>,
     )
 
-    suspend fun backup(sms: SmsDataWrapper): Flow<IOResults<BackupResponse>>
+    suspend fun backup(sms: SmsParam): Flow<IOResults<BackupResponse>>
 
 
     suspend fun findAndUpdateStatus(receivedAts: List<String>)

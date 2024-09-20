@@ -13,6 +13,7 @@ import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
 import com.example.dtclnh.domain.model.SmsModel
+import com.example.dtclnh.domain.model.SmsParam
 import com.example.dtclnh.domain.reposiory.ISmsRepository
 import com.example.dtclnh.presentation.base.ext.generateUniqueID
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -102,7 +103,7 @@ class SmsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun backup(
-        sms: SmsDataWrapper,
+        sms: SmsParam,
     ): Flow<IOResults<BackupResponse>> = performSafeNetworkApiCall {
         iBackUpApi.backUp(sms)
     }

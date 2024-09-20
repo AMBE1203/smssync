@@ -9,8 +9,8 @@ object Constants {
     const val API_URL_KEY = "API_URL_KEY"
 
     const val CLIENT_ID = "SMSS_CLIENT"
-    const val API_URL = "http://125.212.238.157:8460/api/v1/sms/new/batch"
-    const val API_KEY = "Basic c21zc3luYzpzbXNzeW5jQDIwMjQ="
+    const val API_URL = "https://mobile.gongu365.vn/v9/api/public/order/listen-event-order-payment"
+    const val API_KEY = "H0IuSe4XJ8kAGDNd/kDDbvnQ18u7zn1/CVl3V5OzMR/GGtMy26ipl1QyjmXFpnn+8mmCtQ1KytYp/i4LbApBSQ=="
     const val WORK_MANAGER_ID = "WORK_MANAGER_ID"
     const val WORK_MANAGER_TAG = "WORK_MANAGER_TAG"
 
