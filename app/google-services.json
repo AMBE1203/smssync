@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "672331149034",
+    "project_id": "smssync-d33e5",
+    "storage_bucket": "smssync-d33e5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:672331149034:android:ea77b5d0960af2d0eff193",
+        "android_client_info": {
+          "package_name": "com.example.dtclnh"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSYQbfcRR0dMI9lPL5cWHQ-h40CkXW5i4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -197,12 +197,6 @@ class SyncService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-//        val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
-//        registerReceiver(networkReceiver, filter)
-//
-//        val smsFilter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
-//        registerReceiver(smsReceiver, smsFilter)
-
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             startForeground(NOTIFICATION_ID, buildNotification())
         } else {
@@ -238,8 +232,6 @@ class SyncService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Hủy đăng ký BroadcastReceiver khi Service bị hủy
-        unregisterReceiver(networkReceiver)
         unregisterReceiver(smsReceiver)
         job.cancel()
     }

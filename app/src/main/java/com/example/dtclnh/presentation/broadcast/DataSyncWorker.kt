@@ -26,6 +26,8 @@ import com.example.dtclnh.domain.model.*
 import com.example.dtclnh.domain.usecase.*
 import com.example.dtclnh.presentation.base.ext.toDateTimeString
 import com.example.dtclnh.presentation.page.login.LoginViewModel
+import com.google.firebase.FirebaseApp
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +60,15 @@ class DataSyncWorker @AssistedInject constructor(
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     override suspend fun doWork(): Result {
+        if (FirebaseApp.getApps(applicationContext).isEmpty()) {
+            Log.d("MyWorker", "Firebase initialized successfully in Worker")
+
+            FirebaseApp.initializeApp(applicationContext)
+        } else {
+            Log.d("MyWorker", "Firebase already initialized")
+
+        }
+        val crashlytics = FirebaseCrashlytics.getInstance()
 
         return try {
 
@@ -91,8 +102,6 @@ class DataSyncWorker @AssistedInject constructor(
 
                     val chunkedSms = smsInbox.chunked(CHUNK_SIZE)
 
-//                    val jobs = mutableListOf<Job>()
-
                     for (chunk in chunkedSms) {
                         Log.e("AMBE1203", "chunk SIZE: ${chunk.size}")
 
@@ -119,6 +128,7 @@ class DataSyncWorker @AssistedInject constructor(
                                         LocalBroadcastManager.getInstance(applicationContext)
                                             .sendBroadcast(intentRunning)
                                     } else if (r.throwable != null) {
+                                        crashlytics.recordException(r.throwable)
                                         Log.e(
                                             "AMBE1203",
                                             "throwable ${r.throwable.localizedMessage}"
@@ -139,6 +149,7 @@ class DataSyncWorker @AssistedInject constructor(
                                             findAndUpdateStatusUseCase.execute(chunk.map { it.receivedAt }
                                                 .toList())
                                             Log.e("AMBE1203", "success chunk SIZE: ${chunk.size}")
+                                            crashlytics.log("success chunk SIZE: ${chunk.size}")
 
                                             val intent = Intent(ACTION_WORK_SUCCESS)
                                             intent.setPackage(applicationContext.packageName)
@@ -146,6 +157,7 @@ class DataSyncWorker @AssistedInject constructor(
                                             LocalBroadcastManager.getInstance(applicationContext)
                                                 .sendBroadcast(intent)
                                         } else {
+                                            crashlytics.recordException(Throwable(message = r.result.message))
                                             val intent = Intent(ACTION_WORK_FAIL)
                                             intent.setPackage(applicationContext.packageName)
 
@@ -159,10 +171,9 @@ class DataSyncWorker @AssistedInject constructor(
                                     }
                                 }
 
-// Print time before delay
-
                             } catch (e: Exception) {
                                 Log.e("AMBE1203", "throwable 1 ${e.localizedMessage}")
+                                crashlytics.recordException(e)
                                 val intent = Intent(ACTION_WORK_FAIL)
                                 intent.setPackage(applicationContext.packageName)
 
@@ -180,6 +191,8 @@ class DataSyncWorker @AssistedInject constructor(
 //                    jobs.forEach { it.join() }
 
                 } else {
+                    crashlytics.log("Sync success")
+
                     val intentSuccess = Intent(ACTION_WORK_SUCCESS)
                     intentSuccess.setPackage(applicationContext.packageName)
                     LocalBroadcastManager.getInstance(applicationContext)
@@ -187,6 +200,7 @@ class DataSyncWorker @AssistedInject constructor(
                 }
 
             } else {
+                crashlytics.log("No sms in inbox")
                 val intentSuccess = Intent(ACTION_WORK_SUCCESS)
                 intentSuccess.setPackage(applicationContext.packageName)
                 LocalBroadcastManager.getInstance(applicationContext)
@@ -195,6 +209,7 @@ class DataSyncWorker @AssistedInject constructor(
 
             Result.success()
         } catch (e: Exception) {
+            crashlytics.recordException(e)
             Result.retry()
         }
     }
