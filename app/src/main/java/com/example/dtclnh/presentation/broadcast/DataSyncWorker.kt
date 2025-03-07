@@ -60,13 +60,13 @@ class DataSyncWorker @AssistedInject constructor(
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     override suspend fun doWork(): Result {
-        if (FirebaseApp.getApps(applicationContext).isEmpty()) {
-            Log.d("MyWorker", "Firebase initialized successfully in Worker")
-
-            FirebaseApp.initializeApp(applicationContext)
-        } else {
-            Log.d("MyWorker", "Firebase already initialized")
-
+        val firebaseApps = FirebaseApp.getApps(applicationContext)
+        if (firebaseApps.isEmpty()) {
+            try {
+                FirebaseApp.initializeApp(applicationContext)
+            } catch (e: Exception) {
+                return Result.failure()
+            }
         }
         val crashlytics = FirebaseCrashlytics.getInstance()
 

@@ -232,7 +232,7 @@ class SyncService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(smsReceiver)
+//        unregisterReceiver(smsReceiver)
         job.cancel()
     }
 
