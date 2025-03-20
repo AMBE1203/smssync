@@ -38,6 +38,8 @@ class SmsRepositoryImpl @Inject constructor(
                         it.smsId
                     ) && !messageExistsBackUpSuccess(it.smsId)
                 ) {
+                    Log.e("AMBE1203", "error: ${it.smsId}")
+
                     database.smsDao().insert(it)
                 }
             }

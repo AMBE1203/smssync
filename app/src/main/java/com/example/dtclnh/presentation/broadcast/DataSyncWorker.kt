@@ -77,9 +77,14 @@ class DataSyncWorker @AssistedInject constructor(
             intentRunning.setPackage(applicationContext.packageName)
             LocalBroadcastManager.getInstance(applicationContext)
                 .sendBroadcast(intentRunning)
-
+            Log.e("AMBE1203", "size: ${listSms.size}")
             if (listSms.isNotEmpty()) {
-                saveSmsUseCase.execute(listSms, false)
+                try {
+                    saveSmsUseCase.execute(listSms, false)
+
+                }catch (e: Exception) {
+                    Log.e("AMBE1203", "error: ${e.message}")
+                }
                 val newEndpoint = sharedPreferences.getString(API_URL_KEY, "")
                 val authorization =
                     sharedPreferences.getString(API_KEY_KEY, "") ?: ""
@@ -184,14 +189,11 @@ class DataSyncWorker @AssistedInject constructor(
 
                         }
                         delay(1000L)
-
-//                        jobs.add(job)
                     }
-
-//                    jobs.forEach { it.join() }
 
                 } else {
                     crashlytics.log("Sync success")
+                    Log.e("AMBE1203", "No sms in inbox 1")
 
                     val intentSuccess = Intent(ACTION_WORK_SUCCESS)
                     intentSuccess.setPackage(applicationContext.packageName)
@@ -205,6 +207,8 @@ class DataSyncWorker @AssistedInject constructor(
                 intentSuccess.setPackage(applicationContext.packageName)
                 LocalBroadcastManager.getInstance(applicationContext)
                     .sendBroadcast(intentSuccess)
+                Log.e("AMBE1203", "No sms in inbox")
+
             }
 
             Result.success()

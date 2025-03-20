@@ -17,6 +17,7 @@ object Constants {
     const val ACTION_WORK_RUNNING = "action_work_running"
     const val ACTION_WORK_SUCCESS = "action_work_success"
     const val ACTION_WORK_FAIL = "action_work_fail"
+    const val ACTION_WORK_CANCEL = "action_work_cancel"
     const val CHUNK_SIZE = 20
 
 }

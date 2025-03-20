@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.CountDownTimer
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,6 +23,7 @@ import androidx.viewbinding.ViewBinding
 import androidx.work.WorkManager
 import com.example.dtclnh.R
 import com.example.dtclnh.core.Constants
+import com.example.dtclnh.core.Constants.ACTION_WORK_CANCEL
 import com.example.dtclnh.core.Constants.ACTION_WORK_FAIL
 import com.example.dtclnh.core.Constants.ACTION_WORK_RUNNING
 import com.example.dtclnh.core.Constants.ACTION_WORK_SUCCESS
@@ -233,6 +235,10 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                 }
             } else {
                 try {
+                    val intentSuccess = Intent(ACTION_WORK_CANCEL)
+                    intentSuccess.setPackage(requireActivity().applicationContext.packageName)
+                    LocalBroadcastManager.getInstance(requireActivity().applicationContext)
+                        .sendBroadcast(intentSuccess)
                     WorkManager.getInstance(requireActivity().applicationContext)
                         .cancelUniqueWork(WORK_MANAGER_ID)
                     WorkManager.getInstance(requireActivity().applicationContext)
@@ -334,17 +340,16 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            Log.e("AMBE1203", "onReceive: " + intent?.action)
             if (intent?.action == ACTION_WORK_SUCCESS) {
                 lifecycleScope.launch {
                     loginViewModel.countNumberSmsForBackUp()
                 }
-//                viewBinding.tvErr.text = ""
                 viewBinding.mProgressBar.visibility = View.GONE
                 viewBinding.tvTotal.text = getString(R.string.sync_success)
 
             } else if (intent?.action == ACTION_WORK_RUNNING) {
                 viewBinding.mProgressBar.visibility = View.VISIBLE
-//                viewBinding.tvErr.text = ""
                 viewBinding.tvTotal.text = getString(R.string.sync_running)
                 countDownTimer.cancel()
                 countDownTimer.start()
@@ -355,6 +360,10 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
                     viewBinding.tvErr.text = it
                 }
                 viewBinding.tvTotal.text = getString(R.string.sync_fail)
+            } else if (intent?.action == ACTION_WORK_CANCEL) {
+                viewBinding.mProgressBar.visibility = View.GONE
+                viewBinding.tvTotal.text = getString(R.string.sync_waiting)
+                countDownTimer.cancel()
             }
         }
     }
