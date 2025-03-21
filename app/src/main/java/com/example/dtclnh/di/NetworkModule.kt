@@ -1,6 +1,7 @@
 package com.example.dtclnh.di
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -128,9 +129,10 @@ class NetworkModule {
     fun provideSmsRepository(
         appDatabase: AppDatabase,
         iBackUpApi: IBackUpApi,
+        sharedPreferences: SharedPreferences,
         @ApplicationContext context: Context
     ): ISmsRepository {
-        return SmsRepositoryImpl(appDatabase, iBackUpApi, context)
+        return SmsRepositoryImpl(appDatabase, iBackUpApi, sharedPreferences, context)
     }
 
     @Singleton

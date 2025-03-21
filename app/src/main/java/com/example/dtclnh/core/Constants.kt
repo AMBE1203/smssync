@@ -7,6 +7,7 @@ object Constants {
     const val CLIENT_ID_KEY = "CLIENT_ID_KEY"
     const val API_KEY_KEY = "API_KEY_KEY"
     const val API_URL_KEY = "API_URL_KEY"
+    const val NUMBER_OF_DAY_AGO_KEY = "NUMBER_OF_DAY_AGO_KEY"
 
     const val CLIENT_ID = "SMSS_CLIENT"
     const val API_URL = "http://125.212.238.157:8460/api/v1/sms/new/batch"
@@ -19,5 +20,6 @@ object Constants {
     const val ACTION_WORK_FAIL = "action_work_fail"
     const val ACTION_WORK_CANCEL = "action_work_cancel"
     const val CHUNK_SIZE = 20
+    const val NUMBER_OF_DAY_AGO = 7L
 
 }

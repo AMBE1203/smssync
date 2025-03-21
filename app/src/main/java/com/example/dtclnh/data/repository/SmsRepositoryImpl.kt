@@ -2,21 +2,24 @@ package com.example.dtclnh.data.repository
 
 import android.content.ContentResolver
 import android.content.Context
+import android.content.SharedPreferences
 import android.net.Uri
 import android.util.Log
+import com.example.dtclnh.core.Constants.API_URL_KEY
+import com.example.dtclnh.core.Constants.NUMBER_OF_DAY_AGO
+import com.example.dtclnh.core.Constants.NUMBER_OF_DAY_AGO_KEY
 import com.example.dtclnh.core.IOResults
 import com.example.dtclnh.core.performSafeNetworkApiCall
 import com.example.dtclnh.data.source.local.AppDatabase
 import com.example.dtclnh.data.source.remote.IBackUpApi
 import com.example.dtclnh.domain.model.BackupResponse
 import com.example.dtclnh.domain.model.BackupStatus
-import com.example.dtclnh.domain.model.BaseResponse
 import com.example.dtclnh.domain.model.SmsDataWrapper
 import com.example.dtclnh.domain.model.SmsModel
 import com.example.dtclnh.domain.reposiory.ISmsRepository
 import com.example.dtclnh.presentation.base.ext.generateUniqueID
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,6 +27,7 @@ import javax.inject.Singleton
 class SmsRepositoryImpl @Inject constructor(
     private val database: AppDatabase,
     private val iBackUpApi: IBackUpApi,
+    private val sharedPreferences: SharedPreferences,
     @ApplicationContext private val context: Context
 
 ) : ISmsRepository {
@@ -55,11 +59,22 @@ class SmsRepositoryImpl @Inject constructor(
         database.smsDao().loadAllSMSInDb()
 
     override suspend fun getAllSmsInInbox(): MutableList<SmsModel> {
+        val numberOfDayAgo = sharedPreferences.getLong(NUMBER_OF_DAY_AGO_KEY, NUMBER_OF_DAY_AGO)
+
         val contentResolver: ContentResolver = context.contentResolver
         val smsURI: Uri = Uri.parse("content://sms/inbox")
-        val cursor = contentResolver.query(smsURI, null, null, null, null)
+        val selection = "date > ?"
+        val selectionArgs =
+            arrayOf((System.currentTimeMillis() - numberOfDayAgo * 24 * 60 * 60 * 1000).toString())
+
         val listSms: MutableList<SmsModel> = mutableListOf()
+
+
+        val cursor = contentResolver.query(smsURI, null, selection, selectionArgs, null)
+
+
         if (cursor != null) {
+            listSms.clear()
             if (cursor.moveToFirst()) {
                 do {
 

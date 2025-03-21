@@ -73,10 +73,10 @@ class DataSyncWorker @AssistedInject constructor(
         return try {
 
             val listSms = loadAllSmsInInboxUseCase.execute()
-            val intentRunning = Intent(ACTION_WORK_RUNNING)
-            intentRunning.setPackage(applicationContext.packageName)
-            LocalBroadcastManager.getInstance(applicationContext)
-                .sendBroadcast(intentRunning)
+//            val intentRunning = Intent(ACTION_WORK_RUNNING)
+//            intentRunning.setPackage(applicationContext.packageName)
+//            LocalBroadcastManager.getInstance(applicationContext)
+//                .sendBroadcast(intentRunning)
             Log.e("AMBE1203", "size: ${listSms.size}")
             if (listSms.isNotEmpty()) {
                 try {

@@ -10,6 +10,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.dtclnh.core.Constants.API_KEY_KEY
 import com.example.dtclnh.core.Constants.API_URL_KEY
 import com.example.dtclnh.core.Constants.CLIENT_ID_KEY
+import com.example.dtclnh.core.Constants.NUMBER_OF_DAY_AGO
+import com.example.dtclnh.core.Constants.NUMBER_OF_DAY_AGO_KEY
 import com.example.dtclnh.domain.model.BackupStatus
 import com.example.dtclnh.domain.model.SmsModel
 import com.example.dtclnh.domain.usecase.*
@@ -107,6 +109,15 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    fun saveNumberOfDayAgo(numberOfDayAgo: Long) {
+        viewModelScope.launch {
+
+            sharedPreferences.edit()
+                .putLong(NUMBER_OF_DAY_AGO_KEY, numberOfDayAgo)
+                .apply()
+        }
+    }
+
     fun getClientId(): String? {
         return sharedPreferences.getString(CLIENT_ID_KEY, "")
     }
@@ -117,6 +128,10 @@ class LoginViewModel @Inject constructor(
 
     fun getApiUrl(): String? {
         return sharedPreferences.getString(API_URL_KEY, "")
+    }
+
+    fun getNumberOfDayAgo(): Long {
+        return sharedPreferences.getLong(NUMBER_OF_DAY_AGO_KEY, NUMBER_OF_DAY_AGO)
     }
 
 

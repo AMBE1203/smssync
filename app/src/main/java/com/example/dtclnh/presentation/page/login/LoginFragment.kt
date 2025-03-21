@@ -153,6 +153,10 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
             }
         }
 
+        loginViewModel.getNumberOfDayAgo().let {
+            loginViewModel.saveNumberOfDayAgo(it)
+        }
+
 
 
         loginViewModel.initData()
@@ -421,9 +425,10 @@ class LoginFragment : BaseFragment(), BottomSheetDismissListener {
 
     }
 
-    override fun onBottomSheetDismissed(clientItd: String, apiKey: String, apiUrl: String) {
+    override fun onBottomSheetDismissed(clientItd: String, apiKey: String, apiUrl: String, numberOfDayAgo: Long) {
         loginViewModel.saveApiKey(apiKey)
         loginViewModel.saveApiUrl(apiUrl)
         loginViewModel.saveClientId(clientItd)
+        loginViewModel.saveNumberOfDayAgo(numberOfDayAgo)
     }
 }

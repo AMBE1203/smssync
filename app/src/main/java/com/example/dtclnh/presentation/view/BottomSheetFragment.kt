@@ -27,6 +27,7 @@ class BottomSheetFragment : BottomSheetDialogFragment() {
     private var mClientId: String? = null
     private var mApiKey: String? = null
     private var mApiUrl: String? = null
+    private var mNumberOfDayAgo: Long? = null
 
     @Inject
     lateinit var sharedPreferences: SharedPreferences
@@ -64,6 +65,15 @@ class BottomSheetFragment : BottomSheetDialogFragment() {
             binding.editApiUrl.setText(it)
         }
 
+        val numberOfDayAgo = sharedPreferences.getLong(Constants.NUMBER_OF_DAY_AGO_KEY, Constants.NUMBER_OF_DAY_AGO)
+
+        numberOfDayAgo.let {
+            mNumberOfDayAgo = it
+            binding.editNumberOfDayAgo.setText(String.format(it.toString()))
+        }
+
+
+
         binding.editApiKey.addTextChangedListener {
             mApiKey = it.toString()
         }
@@ -78,12 +88,20 @@ class BottomSheetFragment : BottomSheetDialogFragment() {
         binding.btnSave.setOnClickListener {
 
             if (mClientId?.isNotEmpty() == true
-                && mApiKey?.isNotEmpty() == true && mApiUrl?.isNotEmpty() == true
+                && mApiKey?.isNotEmpty() == true && mApiUrl?.isNotEmpty() == true && mNumberOfDayAgo != null
             ) {
+                mNumberOfDayAgo = try {
+                    binding.editNumberOfDayAgo.text.toString().toLong()
+
+                } catch (e: Exception){
+                    Constants.NUMBER_OF_DAY_AGO
+                }
+
                 bottomSheetDismissListener?.onBottomSheetDismissed(
                     clientItd = mClientId ?: "",
                     apiKey = mApiKey ?: "",
-                    apiUrl = mApiUrl ?: ""
+                    apiUrl = mApiUrl ?: "",
+                    numberOfDayAgo = mNumberOfDayAgo ?: Constants.NUMBER_OF_DAY_AGO
                 )
                 dismiss()
             } else {
@@ -116,7 +134,7 @@ class BottomSheetFragment : BottomSheetDialogFragment() {
 }
 
 interface BottomSheetDismissListener {
-    fun onBottomSheetDismissed(clientItd: String, apiKey: String, apiUrl: String)
+    fun onBottomSheetDismissed(clientItd: String, apiKey: String, apiUrl: String, numberOfDayAgo: Long)
 }
 
 

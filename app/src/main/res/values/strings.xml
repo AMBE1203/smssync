@@ -32,6 +32,7 @@
     <string name="client_id">Client-ID</string>
     <string name="api_key">API-Key</string>
     <string name="api_url">API-URL</string>
+    <string name="number_of_day_ago">Number of day ago</string>
     <string name="back_up_status">Backup status:</string>
     <string name="on_off">On/Off backup:</string>
     <string name="count">Count:</string>
